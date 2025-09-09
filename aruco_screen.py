@@ -9,7 +9,7 @@ aruco_params = cv2.aruco.DetectorParameters()
 
 canvas_width, canvas_height = 800, 600
 
-canvas = np.ones((canvas_height, canvas_width, 3), dtype=np.uint8) * 255
+canvas = np.zeros((canvas_height, canvas_width, 4), dtype=np.uint8)
 height, width, _ = canvas.shape
 
 overlay_coordinates = [
