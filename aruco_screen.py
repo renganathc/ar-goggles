@@ -79,6 +79,8 @@ kf3.measurementMatrix = np.array([[1, 0, 0, 0],
 kf3.processNoiseCov = np.eye(4, dtype=np.float32) * 1e-3
 kf3.measurementNoiseCov = np.eye(2, dtype=np.float32) * 1e-2
 
+pred_count = 0
+
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -138,15 +140,24 @@ while True:
                 
                 for c in range(3):  # BGR channels
                     frame[:, :, c][mask] = warped_canvas[:, :, c][mask]
+                
+            pred_count = 0
 
-    elif kf_init:
-
+    elif kf_init and pred_count <= 5:
+        pred_count += 1
         filtered_pts = np.zeros((4, 2), dtype=np.float32)
 
-        filtered_pts[0] = kf0.predict()[:2].flatten()
-        filtered_pts[1] = kf1.predict()[:2].flatten()
-        filtered_pts[2] = kf2.predict()[:2].flatten()
-        filtered_pts[3] = kf3.predict()[:2].flatten()
+        if pred_count <=3:
+            filtered_pts[0] = kf0.predict()[:2].flatten()
+            filtered_pts[1] = kf1.predict()[:2].flatten()
+            filtered_pts[2] = kf2.predict()[:2].flatten()
+            filtered_pts[3] = kf3.predict()[:2].flatten()
+        
+        else:
+            filtered_pts[0] = kf0.statePost[:2].flatten()
+            filtered_pts[1] = kf1.statePost[:2].flatten()
+            filtered_pts[2] = kf2.statePost[:2].flatten()
+            filtered_pts[3] = kf3.statePost[:2].flatten()
 
         H, _ = cv2.findHomography(src_pts, filtered_pts)
         warped_canvas = cv2.warpPerspective(canvas, H, (frame_width, frame_height))
