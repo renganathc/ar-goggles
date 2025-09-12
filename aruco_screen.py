@@ -4,7 +4,7 @@ import numpy as np
 aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
 aruco_params = cv2.aruco.DetectorParameters()
 
-canvas_width, canvas_height = 800, 600
+canvas_width, canvas_height = 1200, 600
 
 canvas = np.zeros((canvas_height, canvas_width, 4), dtype=np.uint8)
 height, width, _ = canvas.shape
@@ -126,14 +126,26 @@ while True:
                 kf3.predict()
                 kf3.correct(np.array([[dst_pts[3][0]], [dst_pts[3][1]]], dtype=np.float32))
 
-                # filtered_pts = np.zeros((4, 2), dtype=np.float32)
+                filtered_pts = np.zeros((4, 2), dtype=np.float32)
 
-                # filtered_pts[0] = kf0.statePost[:2].flatten()
-                # filtered_pts[1] = kf1.statePost[:2].flatten()
-                # filtered_pts[2] = kf2.statePost[:2].flatten()
-                # filtered_pts[3] = kf3.statePost[:2].flatten()
+                filtered_pts[0] = kf0.statePost[:2].flatten()
+                filtered_pts[1] = kf1.statePost[:2].flatten()
+                filtered_pts[2] = kf2.statePost[:2].flatten()
+                filtered_pts[3] = kf3.statePost[:2].flatten()
 
-                H, _ = cv2.findHomography(src_pts, dst_pts)
+                cx = np.mean([p[0] for p in filtered_pts])
+                cy = np.mean([p[1] for p in filtered_pts])
+
+                scale = 3  # how many times bigger than marker
+                enlarged_dst = []
+                for (x, y) in filtered_pts:
+                    new_x = cx + (x - cx) * scale
+                    new_y = cy + (y - cy) * scale
+                    enlarged_dst.append([new_x, new_y])
+                filtered_pts = np.array(enlarged_dst, dtype=np.float32)
+
+
+                H, _ = cv2.findHomography(src_pts, filtered_pts)
                 warped_canvas = cv2.warpPerspective(canvas, H, (frame_width, frame_height))
                 warped_canvas = cv2.resize(warped_canvas, (frame_width, frame_height))
                 mask = np.any(warped_canvas != 0, axis=2)  # True where at least one channel is non-black
@@ -143,11 +155,11 @@ while True:
                 
             pred_count = 0
 
-    elif kf_init and pred_count <= 5:
+    elif kf_init and pred_count <= 2:
         pred_count += 1
         filtered_pts = np.zeros((4, 2), dtype=np.float32)
 
-        if pred_count <=3:
+        if pred_count <= 1:
             filtered_pts[0] = kf0.predict()[:2].flatten()
             filtered_pts[1] = kf1.predict()[:2].flatten()
             filtered_pts[2] = kf2.predict()[:2].flatten()
@@ -159,6 +171,17 @@ while True:
             filtered_pts[2] = kf2.statePost[:2].flatten()
             filtered_pts[3] = kf3.statePost[:2].flatten()
 
+        cx = np.mean([p[0] for p in filtered_pts])
+        cy = np.mean([p[1] for p in filtered_pts])
+
+        scale = 3  # how many times bigger than marker
+        enlarged_fil = []
+        for (x, y) in filtered_pts:
+            new_x = cx + (x - cx) * scale
+            new_y = cy + (y - cy) * scale
+            enlarged_fil.append([new_x, new_y])
+        filtered_pts = np.array(enlarged_fil, dtype=np.float32)
+
         H, _ = cv2.findHomography(src_pts, filtered_pts)
         warped_canvas = cv2.warpPerspective(canvas, H, (frame_width, frame_height))
         mask = np.any(warped_canvas != 0, axis=2)  # True where at least one channel is non-black
@@ -168,5 +191,5 @@ while True:
 
     cv2.imshow("dbhs", frame)
 
-    if cv2.waitKey(2) & 0xFF == ord('q'):
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
