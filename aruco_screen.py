@@ -126,14 +126,14 @@ while True:
                 kf3.predict()
                 kf3.correct(np.array([[dst_pts[3][0]], [dst_pts[3][1]]], dtype=np.float32))
 
-                filtered_pts = np.zeros((4, 2), dtype=np.float32)
+                # filtered_pts = np.zeros((4, 2), dtype=np.float32)
 
-                filtered_pts[0] = kf0.statePost[:2].flatten()
-                filtered_pts[1] = kf1.statePost[:2].flatten()
-                filtered_pts[2] = kf2.statePost[:2].flatten()
-                filtered_pts[3] = kf3.statePost[:2].flatten()
+                # filtered_pts[0] = kf0.statePost[:2].flatten()
+                # filtered_pts[1] = kf1.statePost[:2].flatten()
+                # filtered_pts[2] = kf2.statePost[:2].flatten()
+                # filtered_pts[3] = kf3.statePost[:2].flatten()
 
-                H, _ = cv2.findHomography(src_pts, filtered_pts)
+                H, _ = cv2.findHomography(src_pts, dst_pts)
                 warped_canvas = cv2.warpPerspective(canvas, H, (frame_width, frame_height))
                 warped_canvas = cv2.resize(warped_canvas, (frame_width, frame_height))
                 mask = np.any(warped_canvas != 0, axis=2)  # True where at least one channel is non-black
