@@ -17,9 +17,15 @@ def create_kf():
 
     return kf
 
-def scale_overlay(pts, scale):
+def scale_overlay(pts, scale, overlay=3):
     cx = np.mean([p[0] for p in pts])
     cy = np.mean([p[1] for p in pts])
+    
+    bottom_mid = (pts[2] + pts[3]) / 2.0
+    dx, dy = bottom_mid - np.array([cx, cy])
+    cx += overlay * dx
+    cy += overlay * dy
+
     enlarged_pts = []
     for (x, y) in pts:
         new_x = cx + (x - cx) * scale
@@ -83,7 +89,7 @@ while True:
     if results:
         for r in results:
             area = cv2.contourArea(np.array(r.corners, dtype=np.int32))
-            if r.tag_id == 0 and area > frame_area*0.004: #adjust min area
+            if r.tag_id == 0 and area > frame_area*0.005: #adjust min area
                 dst_pts = np.array(r.corners, dtype=np.float32)
                 #print(dst_pts)
                 if dst_pts.shape != (4,2):
