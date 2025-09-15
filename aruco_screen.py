@@ -17,6 +17,16 @@ def create_kf():
 
     return kf
 
+def scale_overlay(pts, scale):
+    cx = np.mean([p[0] for p in pts])
+    cy = np.mean([p[1] for p in pts])
+    enlarged_pts = []
+    for (x, y) in pts:
+        new_x = cx + (x - cx) * scale
+        new_y = cy + (y - cy) * scale
+        enlarged_pts.append([new_x, new_y])
+    pts = np.array(enlarged_pts, dtype=np.float32)
+    return pts
 
 detector = apriltag.Detector(
                             families="tag16h5",
@@ -102,15 +112,7 @@ while True:
                     # filtered_pts[2] = kf2.statePost[:2].flatten()
                     # filtered_pts[3] = kf3.statePost[:2].flatten()
 
-                    cx = np.mean([p[0] for p in dst_pts])
-                    cy = np.mean([p[1] for p in dst_pts])
-                    scale = 1
-                    enlarged_dst = []
-                    for (x, y) in dst_pts:
-                        new_x = cx + (x - cx) * scale
-                        new_y = cy + (y - cy) * scale
-                        enlarged_dst.append([new_x, new_y])
-                    dst_pts = np.array(enlarged_dst, dtype=np.float32)
+                    dst_pts = scale_overlay(dst_pts, 2)
 
                     H, _ = cv2.findHomography(src_pts, dst_pts)
                     warped_canvas = cv2.warpPerspective(canvas, H, (frame_width, frame_height))
@@ -140,16 +142,7 @@ while True:
             filtered_pts[2] = kf2.statePost[:2].flatten()
             filtered_pts[3] = kf3.statePost[:2].flatten()
 
-        cx = np.mean([p[0] for p in filtered_pts])
-        cy = np.mean([p[1] for p in filtered_pts])
-
-        scale = 1 
-        enlarged_fil = []
-        for (x, y) in filtered_pts:
-            new_x = cx + (x - cx) * scale
-            new_y = cy + (y - cy) * scale
-            enlarged_fil.append([new_x, new_y])
-        filtered_pts = np.array(enlarged_fil, dtype=np.float32)
+        filtered_pts = scale_overlay(filtered_pts, 2)
 
         H, _ = cv2.findHomography(src_pts, filtered_pts)
         warped_canvas = cv2.warpPerspective(canvas, H, (frame_width, frame_height))
