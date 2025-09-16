@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 import pupil_apriltags as apriltag
+from touch import Touch
+import mediapipe
 
 def create_kf():
     kf = cv2.KalmanFilter(4,2)
@@ -17,7 +19,7 @@ def create_kf():
 
     return kf
 
-def scale_overlay(pts, scale, overlay=3):
+def scale_canvas(pts, scale, overlay=2.25):
     cx = np.mean([p[0] for p in pts])
     cy = np.mean([p[1] for p in pts])
     
@@ -70,8 +72,11 @@ warped_canvas = None
 
 kf0, kf1, kf2, kf3 = create_kf(), create_kf(), create_kf(), create_kf()
 kf_init = False
+H = None # my homeography matrix
 
 pred_count = 0
+
+hands_method = mediapipe.solutions.hands.Hands(max_num_hands=1)
 
 while True:
     ret, frame2 = cap.read()
@@ -118,15 +123,8 @@ while True:
                     # filtered_pts[2] = kf2.statePost[:2].flatten()
                     # filtered_pts[3] = kf3.statePost[:2].flatten()
 
-                    dst_pts = scale_overlay(dst_pts, 2)
-
+                    dst_pts = scale_canvas(dst_pts, 2)
                     H, _ = cv2.findHomography(src_pts, dst_pts)
-                    warped_canvas = cv2.warpPerspective(canvas, H, (frame_width, frame_height))
-                    warped_canvas = cv2.resize(warped_canvas, (frame_width, frame_height))
-                    mask = np.any(warped_canvas != 0, axis=2)
-
-                    for c in range(3):
-                        frame2[:, :, c][mask] = warped_canvas[:, :, c][mask]
                     
                 pred_count = 0
                 marker_found = True
@@ -148,14 +146,17 @@ while True:
             filtered_pts[2] = kf2.statePost[:2].flatten()
             filtered_pts[3] = kf3.statePost[:2].flatten()
 
-        filtered_pts = scale_overlay(filtered_pts, 2)
-
+        filtered_pts = scale_canvas(filtered_pts, 2)
         H, _ = cv2.findHomography(src_pts, filtered_pts)
-        warped_canvas = cv2.warpPerspective(canvas, H, (frame_width, frame_height))
+
+    if H is not None:
+        canvas2 = Touch(frame2, H, overlay_coordinates, canvas.copy(), hands_method)
+        warped_canvas = cv2.warpPerspective(canvas2, H, (frame_width, frame_height))
+        warped_canvas = cv2.resize(warped_canvas, (frame_width, frame_height))
         mask = np.any(warped_canvas != 0, axis=2)
-        
         for c in range(3):
             frame2[:, :, c][mask] = warped_canvas[:, :, c][mask]
+        H = None
 
     cv2.imshow("video", frame2)
     if cv2.waitKey(1) & 0xFF == ord('q'):
