@@ -19,7 +19,7 @@ def create_kf():
 
     return kf
 
-def scale_canvas(pts, scale, overlay=2.25):
+def scale_canvas(pts, scale, overlay=1.1):
     cx = np.mean([p[0] for p in pts])
     cy = np.mean([p[1] for p in pts])
     
@@ -43,15 +43,15 @@ detector = apriltag.Detector(
                             #decode_sharpening=0.5
                             )
 
-canvas_width, canvas_height = 1200, 600
+canvas_width, canvas_height, canvas_scale = 1200, 600, 9
 
 canvas = np.zeros((canvas_height, canvas_width, 4), dtype=np.uint8)
 height, width, _ = canvas.shape
 
 overlay_coordinates = [
-    [(width//4 - width//9, height//2 - height//3),(width//4 + width//9, height//2 + height//3)],
-    [(width*2//4 - width//9, height//2 - height//3),(width*2//4 + width//9, height//2 + height//3)],
-    [(width*3//4 - width//9, height//2 - height//3),(width*3//4 + width//9, height//2 + height//3)],
+    [(width//4 - width//11, height//2 - height//4),(width//4 + width//11, height//2 + height//4)],
+    [(width*2//4 - width//11, height//2 - height//4),(width*2//4 + width//11, height//2 + height//4)],
+    [(width*3//4 - width//11, height//2 - height//4),(width*3//4 + width//11, height//2 + height//4)],
     ]
 
 for overlay in overlay_coordinates:
@@ -94,7 +94,7 @@ while True:
     if results:
         for r in results:
             area = cv2.contourArea(np.array(r.corners, dtype=np.int32))
-            if r.tag_id == 0 and area > frame_area*0.005: #adjust min area
+            if r.tag_id == 0 and area > frame_area*0.002: #adjust min area
                 dst_pts = np.array(r.corners, dtype=np.float32)
                 #print(dst_pts)
                 if dst_pts.shape != (4,2):
@@ -123,7 +123,7 @@ while True:
                     # filtered_pts[2] = kf2.statePost[:2].flatten()
                     # filtered_pts[3] = kf3.statePost[:2].flatten()
 
-                    dst_pts = scale_canvas(dst_pts, 2)
+                    dst_pts = scale_canvas(dst_pts, canvas_scale)
                     H, _ = cv2.findHomography(src_pts, dst_pts)
                     
                 pred_count = 0
@@ -146,16 +146,20 @@ while True:
             filtered_pts[2] = kf2.statePost[:2].flatten()
             filtered_pts[3] = kf3.statePost[:2].flatten()
 
-        filtered_pts = scale_canvas(filtered_pts, 2)
+        filtered_pts = scale_canvas(filtered_pts, canvas_scale)
         H, _ = cv2.findHomography(src_pts, filtered_pts)
-
+    
     if H is not None:
+        frame2_cpy = frame2.copy()
         canvas2 = Touch(frame2, H, overlay_coordinates, canvas.copy(), hands_method)
         warped_canvas = cv2.warpPerspective(canvas2, H, (frame_width, frame_height))
         warped_canvas = cv2.resize(warped_canvas, (frame_width, frame_height))
         mask = np.any(warped_canvas != 0, axis=2)
+
         for c in range(3):
             frame2[:, :, c][mask] = warped_canvas[:, :, c][mask]
+
+        cv2.addWeighted(frame2, 0.5, frame2_cpy, 0.5, 0, frame2)
         H = None
 
     cv2.imshow("video", frame2)
