@@ -54,9 +54,19 @@ overlay_coordinates = [
     [(width*3//4 - width//11, height//2 - height//4),(width*3//4 + width//11, height//2 + height//4)],
     ]
 
-for overlay in overlay_coordinates:
+for i,overlay in enumerate(overlay_coordinates):
     start, end = overlay
-    cv2.rectangle(canvas, start, end, (0, 0, 255), -1)
+
+    if i == 0:
+        icon = cv2.imread("icon_files/tic_icon.png")
+    elif i == 1:
+        icon = cv2.imread("icon_files/connect_icon.png")
+    elif i == 2:
+        icon = cv2.imread("icon_files/yolo_icon.png")
+
+    icon = cv2.resize(icon, (end[0] - start[0], end[1] - start[1]))
+    icon = cv2.cvtColor(icon, cv2.COLOR_BGR2BGRA)
+    canvas[start[1]:end[1], start[0]:end[0]] = icon
 
 src_pts = np.array([
     [0, 0],
