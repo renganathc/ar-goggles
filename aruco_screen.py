@@ -19,7 +19,7 @@ def create_kf():
 
     return kf
 
-def scale_canvas(pts, scale, overlay=1.1):
+def scale_canvas(pts, scale, overlay=0.7):
     cx = np.mean([p[0] for p in pts])
     cy = np.mean([p[1] for p in pts])
     
@@ -43,15 +43,15 @@ detector = apriltag.Detector(
                             #decode_sharpening=0.5
                             )
 
-canvas_width, canvas_height, canvas_scale = 1200, 600, 9
+canvas_width, canvas_height, canvas_scale = 1200, 1200, 9
 
 canvas = np.zeros((canvas_height, canvas_width, 4), dtype=np.uint8)
 height, width, _ = canvas.shape
 
 overlay_coordinates = [
-    [(width//4 - width//11, height//2 - height//4),(width//4 + width//11, height//2 + height//4)],
-    [(width*2//4 - width//11, height//2 - height//4),(width*2//4 + width//11, height//2 + height//4)],
-    [(width*3//4 - width//11, height//2 - height//4),(width*3//4 + width//11, height//2 + height//4)],
+    [(width//4 - width//11, height//2 - height//6),(width//4 + width//11, height//2 + height//6)],
+    [(width*2//4 - width//11, height//2 - height//6),(width*2//4 + width//11, height//2 + height//6)],
+    [(width*3//4 - width//11, height//2 - height//6),(width*3//4 + width//11, height//2 + height//6)],
     ]
 
 for i,overlay in enumerate(overlay_coordinates):
@@ -169,7 +169,7 @@ while True:
         for c in range(3):
             frame2[:, :, c][mask] = warped_canvas[:, :, c][mask]
 
-        cv2.addWeighted(frame2, 0.5, frame2_cpy, 0.5, 0, frame2)
+        cv2.addWeighted(frame2, 0.8, frame2_cpy, 0.2, 0, frame2)
         H = None
 
     cv2.imshow("video", frame2)
