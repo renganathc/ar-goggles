@@ -66,7 +66,7 @@ for i,overlay in enumerate(overlay_coordinates):
 
     icon = cv2.resize(icon, (end[0] - start[0], end[1] - start[1]))
     icon = cv2.cvtColor(icon, cv2.COLOR_BGR2BGRA)
-    canvas[start[1]:end[1], start[0]:end[0]] = icon
+    canvas[start[1]:end[1], start[0]:end[0]] = icon[::-1, :]
 
 src_pts = np.array([
     [0, 0],
