@@ -26,7 +26,7 @@ def Touch(frame, H, element_coordinates, canvas, hands_method):
 		for i,((x0,y0),(x1,y1)) in enumerate(element_coordinates):
 				if x0<fx<x1 and y0<fy<y1:
 					element = i
-					cv2.rectangle(canvas, (x0,y0), (x1,y1), (0,255,0), -1)
+					cv2.rectangle(canvas, (x0,y0), (x1,y1), (0,0,255), 10)
 					break
 
 	return canvas

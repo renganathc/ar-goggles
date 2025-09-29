@@ -58,7 +58,7 @@ for i,overlay in enumerate(overlay_coordinates):
     start, end = overlay
 
     if i == 0:
-        icon = cv2.imread("icon_files/tic_icon.png")
+        icon = cv2.imread("icon_files/tic_icon.png", cv2.IMREAD_UNCHANGED)
     elif i == 1:
         icon = cv2.imread("icon_files/connect_icon.png")
     elif i == 2:
@@ -169,7 +169,7 @@ while True:
         for c in range(3):
             frame2[:, :, c][mask] = warped_canvas[:, :, c][mask]
 
-        cv2.addWeighted(frame2, 0.8, frame2_cpy, 0.2, 0, frame2)
+        cv2.addWeighted(frame2, 0.9, frame2_cpy, 0.1, 0, frame2)
         H = None
 
     cv2.imshow("video", frame2)
