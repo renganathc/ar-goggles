@@ -6,6 +6,7 @@ import random
 pygame.init()
 cap = cv2.VideoCapture(0)
 frame_rate = 30
+game_over = False
 
 # Get video feed size
 ret, frame = cap.read()
@@ -36,7 +37,7 @@ def jump_fn():
 clock = pygame.time.Clock()
 running = True
 
-while running:
+while running and not game_over:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -67,6 +68,15 @@ while running:
         obs['x'] -= obstacle_speed
 
     obstacles = [o for o in obstacles if o['x'] + o['w'] > 0]
+
+    dino_rect = pygame.Rect(50, dino_y, 50, 50)
+
+    for obs in obstacles:
+        obs_rect = pygame.Rect(obs['x'], obs['y'], obs['w'], obs['h'])
+        if dino_rect.colliderect(obs_rect):
+            print("Game Over!")
+            game_over = True
+            break
     
     screen.blit(frame_surface, (0,0))
     pygame.draw.rect(screen, (0,255,0), (50, dino_y, 50, 50))  # green dino
@@ -84,5 +94,15 @@ while running:
         if max_dist > 20:
             max_dist -= 2
 
+if game_over:
+    font = pygame.font.SysFont(None, 100)
+    text_surface = font.render("Game Over!", True, (255,0,0))
+
+    text_rect = text_surface.get_rect(center=(w//2, h//2))
+    screen.blit(text_surface, text_rect)
+    pygame.display.update()
+
+    pygame.time.wait(4000)
+
 cap.release()
-pygame.quit()  
+pygame.quit()
