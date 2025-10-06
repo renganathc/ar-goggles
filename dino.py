@@ -5,7 +5,7 @@ import random
 
 pygame.init()
 cap = cv2.VideoCapture(0)
-frame_rate = 30
+frame_rate = 24
 game_over = False
 
 # Get video feed size
@@ -25,8 +25,9 @@ obstacles = []  # list of dicts: {'x', 'y', 'w', 'h'}
 obstacle_speed = 17
 spawn_timer = 0
 
-dist_cov = 0
+score = 0
 min_dist, max_dist = 30, 50 # next block
+max_obs_height = 120
 
 def jump_fn():
     global dino_vel, is_jumping
@@ -60,7 +61,7 @@ while running and not game_over:
 
     spawn_timer -= 1
     if spawn_timer <= 0:
-        obs_h = random.randint(75, 167)
+        obs_h = random.randint(max_obs_height - 80, max_obs_height)
         obstacles.append({'x': w, 'y': h - obs_h, 'w': 20, 'h': obs_h})
         spawn_timer = random.randint(min_dist, max_dist)  # next spawn
 
@@ -79,30 +80,38 @@ while running and not game_over:
             break
     
     screen.blit(frame_surface, (0,0))
+    score_font = pygame.font.SysFont(None, 70)
+    score_text = score_font.render(str(score), True, (100,0,100))
+    screen.blit(score_text, (w - 140, 100))
     pygame.draw.rect(screen, (0,255,0), (50, dino_y, 50, 50))  # green dino
     for obs in obstacles:
         pygame.draw.rect(screen, (255,0,0), (obs['x'], obs['y'], obs['w'], obs['h']))
 
     pygame.display.update()
     clock.tick(frame_rate)
-    dist_cov += 1
+    score += 1
 
-    if dist_cov % 120 == 0:
+    if score % 120 == 0:
         obstacle_speed += 2
-        if min_dist > 19:
+        max_obs_height += 10
+        if min_dist > 13:
             min_dist -= 2
-        if max_dist > 20:
+        if max_dist > 27:
             max_dist -= 2
-
+    
 if game_over:
-    font = pygame.font.SysFont(None, 100)
-    text_surface = font.render("Game Over!", True, (255,0,0))
+    font1 = pygame.font.SysFont(None, 160)
+    font2 = pygame.font.SysFont(None, 100)
+    line1 = font1.render("Game Over!", True, (0,100,200))
+    line2 = font2.render("Score: " + str(score - 1), True, (255,0,0))
 
-    text_rect = text_surface.get_rect(center=(w//2, h//2))
-    screen.blit(text_surface, text_rect)
+    line1_rect = line1.get_rect(center=(w//2, h//2 - 50))
+    screen.blit(line1, line1_rect)
+    line2_rect = line2.get_rect(center=(w//2, h//2 + 60))
+    screen.blit(line2, line2_rect)
     pygame.display.update()
 
-    pygame.time.wait(4000)
+    pygame.time.wait(10000)
 
 cap.release()
 pygame.quit()
