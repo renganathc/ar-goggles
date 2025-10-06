@@ -29,4 +29,4 @@ def Touch(frame, H, element_coordinates, canvas, hands_method):
 					cv2.rectangle(canvas, (x0,y0), (x1,y1), (0,0,255), 10)
 					break
 
-	return canvas
+	return canvas,element

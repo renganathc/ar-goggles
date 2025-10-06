@@ -3,6 +3,7 @@ import numpy as np
 import pupil_apriltags as apriltag
 from touch import Touch
 import mediapipe
+from dino import dino_game
 
 def create_kf():
     kf = cv2.KalmanFilter(4,2)
@@ -85,8 +86,11 @@ kf_init = False
 H = None # my homeography matrix
 
 pred_count = 0
+game_chosen = False
 
 hands_method = mediapipe.solutions.hands.Hands(max_num_hands=1)
+
+game = dino_game()
 
 while True:
     ret, frame2 = cap.read()
@@ -161,7 +165,14 @@ while True:
     
     if H is not None:
         frame2_cpy = frame2.copy()
-        canvas2 = Touch(frame2, H, overlay_coordinates, canvas.copy(), hands_method)
+        if not game_chosen:
+            canvas2, option = Touch(frame2, H, overlay_coordinates, canvas.copy(), hands_method)
+            
+            if option == 1:
+                game_chosen = True
+        else:
+            canvas2 = next(game)
+
         warped_canvas = cv2.warpPerspective(canvas2, H, (frame_width, frame_height))
         warped_canvas = cv2.resize(warped_canvas, (frame_width, frame_height))
         mask = np.any(warped_canvas != 0, axis=2)
@@ -171,6 +182,8 @@ while True:
 
         cv2.addWeighted(frame2, 0.9, frame2_cpy, 0.1, 0, frame2)
         H = None
+
+
 
     cv2.imshow("video", frame2)
     if cv2.waitKey(1) & 0xFF == ord('q'):
