@@ -1,18 +1,15 @@
 import pygame
 import numpy as np
 import random
+import cv2
 
 def dino_game():
     pygame.init()
-    frame_rate = 24
     game_over = False
 
     # Get video feed size
-    h, w = 1200, 1200
-    screen = pygame.display.set_mode((w, h))
-
-    game_surface = pygame.Surface((w, h), pygame.SRCALPHA)
-    game_surface.fill((0, 0, 0, 255))
+    h, w = 450, 750
+    screen = pygame.Surface((w, h))
 
     # Dino properties
     dino_y = h - 100
@@ -29,22 +26,17 @@ def dino_game():
     max_obs_height = 120
 
     def jump_fn():
-        nonlocal dino_vel, is_jumping
+        nonlocal is_jumping, dino_vel
         if not is_jumping:
             dino_vel = -34   # jump strength
             is_jumping = True
 
-    clock = pygame.time.Clock()
     running = True
 
     while running and not game_over:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_SPACE]:  # space triggers jump
-            jump_fn()
 
         dino_y += dino_vel
         dino_vel += gravity
@@ -69,18 +61,17 @@ def dino_game():
             obs_rect = pygame.Rect(obs['x'], obs['y'], obs['w'], obs['h'])
             if dino_rect.colliderect(obs_rect):
                 print("Game Over!")
-                game_over = True
+                #game_over = True
                 break
         
-        screen.blit(game_surface, (0,0))
-        score_font = pygame.font.SysFont(None, 70)
+        screen.fill((1, 1, 1))
+        score_font = pygame.font.SysFont(None, 90)
         score_text = score_font.render(str(score), True, (100,0,100))
         screen.blit(score_text, (w - 140, 100))
         pygame.draw.rect(screen, (0,255,0), (50, dino_y, 50, 50))  # green dino
         for obs in obstacles:
             pygame.draw.rect(screen, (255,0,0), (obs['x'], obs['y'], obs['w'], obs['h']))
 
-        pygame.display.update()
         #clock.tick(frame_rate)
         score += 1
 
@@ -92,12 +83,21 @@ def dino_game():
             if max_dist > 27:
                 max_dist -= 2
         
-        frame = pygame.surfarray.pixels_alpha(game_surface)
         frame = pygame.surfarray.array3d(screen)
         frame = np.transpose(frame, (1,0,2))  # pygame stores arrays differently
-        yield frame
+        frame = np.flipud(frame)
+        frame = cv2.resize(frame, (1000, 600))
+        x = yield frame
+
+        if x:
+            jump_fn()
         
-    if game_over:
+    game_over_frame_count = 0
+
+    while game_over:
+        game_over_frame_count += 1
+        if game_over_frame_count > 115:
+            break
         font1 = pygame.font.SysFont(None, 160)
         font2 = pygame.font.SysFont(None, 100)
         line1 = font1.render("Game Over!", True, (0,100,200))
@@ -107,8 +107,11 @@ def dino_game():
         screen.blit(line1, line1_rect)
         line2_rect = line2.get_rect(center=(w//2, h//2 + 60))
         screen.blit(line2, line2_rect)
-        pygame.display.update()
 
-        pygame.time.wait(10000)
+        frame = pygame.surfarray.array3d(screen)
+        frame = np.transpose(frame, (1,0,2))  # pygame stores arrays differently
+        frame = np.flipud(frame)
+        frame = cv2.resize(frame, (1000, 600))
+        yield frame
 
     pygame.quit()

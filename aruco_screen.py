@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import pupil_apriltags as apriltag
-from touch import Touch
+from touch import Touch, jump_gest_detector
 import mediapipe
 from dino import dino_game
 
@@ -20,7 +20,7 @@ def create_kf():
 
     return kf
 
-def scale_canvas(pts, scale, overlay=0.7):
+def scale_canvas(pts, scale, overlay=0.4):
     cx = np.mean([p[0] for p in pts])
     cy = np.mean([p[1] for p in pts])
     
@@ -44,15 +44,17 @@ detector = apriltag.Detector(
                             #decode_sharpening=0.5
                             )
 
-canvas_width, canvas_height, canvas_scale = 1200, 1200, 9
+canvas_width, canvas_height, canvas_scale = 1000, 1000, 7
 
 canvas = np.zeros((canvas_height, canvas_width, 3), dtype=np.uint8)
+canvas[:,:,2] = 100
 height, width, _ = canvas.shape
+height = int(height*6/10) #virtual height
 
 overlay_coordinates = [
-    [(width//4 - width//11, height//2 - height//6),(width//4 + width//11, height//2 + height//6)],
-    [(width*2//4 - width//11, height//2 - height//6),(width*2//4 + width//11, height//2 + height//6)],
-    [(width*3//4 - width//11, height//2 - height//6),(width*3//4 + width//11, height//2 + height//6)],
+    [(width//4 - width//11, height//2 - height//3),(width//4 + width//11, height//2 + height//3)],
+    [(width*2//4 - width//11, height//2 - height//3),(width*2//4 + width//11, height//2 + height//3)],
+    [(width*3//4 - width//11, height//2 - height//3),(width*3//4 + width//11, height//2 + height//3)],
     ]
 
 for i,overlay in enumerate(overlay_coordinates):
@@ -90,6 +92,9 @@ game_chosen = False
 hands_method = mediapipe.solutions.hands.Hands(max_num_hands=1)
 
 game = dino_game()
+next(game)
+
+key = -1
 
 while True:
     ret, frame2 = cap.read()
@@ -166,11 +171,20 @@ while True:
         frame2_cpy = frame2.copy()
         if not game_chosen:
             canvas2, option = Touch(frame2, H, overlay_coordinates, canvas.copy(), hands_method)
-            
             if option == 0 :
                 game_chosen = True
         else:
-            canvas2 = next(game)
+            jump_gesture_detected = jump_gest_detector(frame2, hands_method)
+            if jump_gesture_detected:
+                canvas2 = game.send(True)
+                print("space hit")
+            else:
+                canvas2 = game.send(False)
+
+        # warped perspective... i like to think of it as 'h matrix' takin the src and dst points,
+        # making a relation between them and when passed onto wraped perspective, allows
+        # any canvas size to be input. the fn simply computes h -1 and copies the pixles
+        # wherever it needs to... no stretching etc... cool...
 
         warped_canvas = cv2.warpPerspective(canvas2, H, (frame_width, frame_height))
         mask = np.any(warped_canvas != 0, axis=2)
@@ -181,5 +195,6 @@ while True:
         H = None
 
     cv2.imshow("video", frame2)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    key = cv2.waitKey(33)
+    if key & 0xFF == ord('q'):
         break
