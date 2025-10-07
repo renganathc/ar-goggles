@@ -46,7 +46,7 @@ detector = apriltag.Detector(
 
 canvas_width, canvas_height, canvas_scale = 1200, 1200, 9
 
-canvas = np.zeros((canvas_height, canvas_width, 4), dtype=np.uint8)
+canvas = np.zeros((canvas_height, canvas_width, 3), dtype=np.uint8)
 height, width, _ = canvas.shape
 
 overlay_coordinates = [
@@ -59,14 +59,13 @@ for i,overlay in enumerate(overlay_coordinates):
     start, end = overlay
 
     if i == 0:
-        icon = cv2.imread("icon_files/tic_icon.png", cv2.IMREAD_UNCHANGED)
+        icon = cv2.imread("icon_files/tic_icon.png")
     elif i == 1:
         icon = cv2.imread("icon_files/connect_icon.png")
     elif i == 2:
         icon = cv2.imread("icon_files/yolo_icon.png")
 
     icon = cv2.resize(icon, (end[0] - start[0], end[1] - start[1]))
-    icon = cv2.cvtColor(icon, cv2.COLOR_BGR2BGRA)
     canvas[start[1]:end[1], start[0]:end[0]] = icon[::-1, :]
 
 src_pts = np.array([
@@ -168,22 +167,18 @@ while True:
         if not game_chosen:
             canvas2, option = Touch(frame2, H, overlay_coordinates, canvas.copy(), hands_method)
             
-            if option == 1:
+            if option == 0 :
                 game_chosen = True
         else:
             canvas2 = next(game)
 
         warped_canvas = cv2.warpPerspective(canvas2, H, (frame_width, frame_height))
-        warped_canvas = cv2.resize(warped_canvas, (frame_width, frame_height))
         mask = np.any(warped_canvas != 0, axis=2)
 
-        for c in range(3):
-            frame2[:, :, c][mask] = warped_canvas[:, :, c][mask]
+        frame2[:, :, :][mask] = warped_canvas[:, :, :][mask]
 
         cv2.addWeighted(frame2, 0.9, frame2_cpy, 0.1, 0, frame2)
         H = None
-
-
 
     cv2.imshow("video", frame2)
     if cv2.waitKey(1) & 0xFF == ord('q'):
