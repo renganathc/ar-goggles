@@ -4,6 +4,8 @@ import pupil_apriltags as apriltag
 from touch import Touch, jump_gest_detector
 import mediapipe
 from dino import dino_game
+from space_shooter import space_shooter_game
+from gesture_space import detect_gestures
 
 def create_kf():
     kf = cv2.KalmanFilter(4,2)
@@ -44,7 +46,7 @@ detector = apriltag.Detector(
                             #decode_sharpening=0.5
                             )
 
-canvas_width, canvas_height, canvas_scale = 1000, 1000, 7
+canvas_width, canvas_height, canvas_scale = 1000, 1000, 9
 
 canvas = np.zeros((canvas_height, canvas_width, 3), dtype=np.uint8)
 height, width, _ = canvas.shape
@@ -89,11 +91,13 @@ pred_count = 0
 game_chosen = False
 
 hands_method = mediapipe.solutions.hands.Hands(max_num_hands=1)
-
+space_hands_method = mediapipe.solutions.hands.Hands(max_num_hands=1)
 game = dino_game()
+game2=space_shooter_game()
 next(game)
-
+next(game2) 
 key = -1
+option=  -1
 
 while True:
     ret, frame2 = cap.read()
@@ -168,17 +172,20 @@ while True:
     
     if H is not None:
         frame2_cpy = frame2.copy()
-        if not game_chosen:
-            canvas2, option = Touch(frame2, H, overlay_coordinates, canvas.copy(), hands_method)
-            if option == 0 :
-                game_chosen = True
-        else:
+        if option == -1:
+            canvas2, option2 = Touch(frame2, H, overlay_coordinates, canvas.copy(), hands_method)
+            option = option2
+        elif option==0:
             jump_gesture_detected = jump_gest_detector(frame2, hands_method)
             if jump_gesture_detected:
                 canvas2 = game.send(True)
                 print("space hit")
             else:
                 canvas2 = game.send(False)
+        elif option==1 :
+            gesture_move, gesture_fire, palm_x = detect_gestures(frame, hands_method, 1000, 700)
+            canvas2= game2.send((gesture_move, gesture_fire, palm_x))
+            
 
         # warped perspective... i like to think of it as 'h matrix' takin the src and dst points,
         # making a relation between them and when passed onto wraped perspective, allows
