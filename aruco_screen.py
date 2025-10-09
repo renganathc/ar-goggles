@@ -43,6 +43,8 @@ src_pts = np.array([
 ], dtype=np.float32)
 
 cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
 frame_height, frame_width, frame_area = None, None, None
 warped_canvas = None
