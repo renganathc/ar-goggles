@@ -22,14 +22,13 @@ def CreateUI(BoardState,UIHeight,CellSize,X,O):
 
 	return UIBG
 
-def CalculateUICorners(WFrame,HFrame):
-    BoardSize = 400
+def CalculateUICorners(WFrame,HFrame,UIHeight):
     Factor = 2
-    UITopLeftX,UITopLeftY = (WFrame-BoardSize)//Factor,(HFrame-BoardSize)//Factor
+    UITopLeftX,UITopLeftY = (WFrame-UIHeight)//Factor,(HFrame-UIHeight)//Factor
     UITopLeft = (UITopLeftX,UITopLeftY)
-    UITopRight = (UITopLeftX+BoardSize,UITopLeftY)
-    UIBottomLeft = (UITopLeftX,UITopLeftY+BoardSize)
-    UIBottomRight = (UITopLeftX+BoardSize,UITopLeftY+BoardSize)
+    UITopRight = (UITopLeftX+UIHeight,UITopLeftY)
+    UIBottomLeft = (UITopLeftX,UITopLeftY+UIHeight)
+    UIBottomRight = (UITopLeftX+UIHeight,UITopLeftY+UIHeight)
     
     return np.array([UITopLeft,UITopRight,UIBottomRight,UIBottomLeft], dtype=np.float32)
 
@@ -162,7 +161,10 @@ def TicTacToeMain(cam):
     X = "X"
     O = "O"
     EMPTY = None
-    UIHeight = 500
+    _,frame = cam.read()
+    HFrame, WFrame, _ = frame.shape
+
+    UIHeight = WFrame//2
     CellSize = UIHeight//3
     h,w = UIHeight,UIHeight
     board = InitialState(EMPTY)
@@ -195,7 +197,7 @@ def TicTacToeMain(cam):
         key = cv2.waitKey(1) & 0xFF
 
         
-        DestinationPoints = CalculateUICorners(WFrame,HFrame)
+        DestinationPoints = CalculateUICorners(WFrame,HFrame,UIHeight)
         SourcePoints = np.array([[0, 0], [w, 0], [w, h], [0, h]], dtype=np.float32)
         Matrix, _ = cv2.findHomography(SourcePoints, DestinationPoints)
             
