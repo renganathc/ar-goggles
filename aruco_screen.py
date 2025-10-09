@@ -75,10 +75,10 @@ while True:
     y0 = canvas_width//4
 
     filtered_pts = np.array([
-        [0 + x0, sq_width - y0],
         [sq_width + x0, sq_width - y0],
-        [sq_width + x0, 0 - y0],
+        [0 + x0, sq_width - y0],
         [0 + x0, 0 - y0],
+        [sq_width + x0, 0 - y0],
         
     ], dtype=np.float32)
     
@@ -121,7 +121,8 @@ while True:
 
         cv2.addWeighted(frame2, 0.9, frame2_cpy, 0.1, 0, frame2)
         H = None
-
+        
+    frame2 = np.fliplr(frame2)
     cv2.imshow("video", frame2)
     key = cv2.waitKey(33)
     if key & 0xFF == ord('q'):
