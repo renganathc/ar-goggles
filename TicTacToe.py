@@ -1,4 +1,3 @@
-import pupil_apriltags as apriltag
 import cv2
 import numpy as np
 import math
@@ -23,22 +22,16 @@ def CreateUI(BoardState,UIHeight,CellSize,X,O):
 
 	return UIBG
 
-def CalculateUICorners(Tag):
-	MarkerTopLeft,MarkerTopRight,MarkerBottomLeft = Tag.corners[0],Tag.corners[1],Tag.corners[3]
-	MarkerCenter = Tag.center
-	TopVector = MarkerTopRight - MarkerTopLeft
-	LeftVector = MarkerBottomLeft - MarkerTopLeft
-	OffsetScale = 3
-	UIScale = 4
-	UICenter = MarkerCenter+(LeftVector*OffsetScale)
-	UIWidth = TopVector*UIScale
-	UIHeight = LeftVector*UIScale
-	UITopLeft = UICenter-(UIWidth/2)-(UIHeight/2)
-	UITopRight = UITopLeft+UIWidth
-	UIBottomLeft = UITopLeft+UIHeight
-	UIBottomRight = UITopLeft+UIWidth+UIHeight
-
-	return np.array([UITopLeft,UITopRight,UIBottomRight,UIBottomLeft], dtype=np.float32)
+def CalculateUICorners(WFrame,HFrame):
+    BoardSize = 400
+    Factor = 2
+    UITopLeftX,UITopLeftY = (WFrame-BoardSize)//Factor,(HFrame-BoardSize)//Factor
+    UITopLeft = (UITopLeftX,UITopLeftY)
+    UITopRight = (UITopLeftX+BoardSize,UITopLeftY)
+    UIBottomLeft = (UITopLeftX,UITopLeftY+BoardSize)
+    UIBottomRight = (UITopLeftX+BoardSize,UITopLeftY+BoardSize)
+    
+    return np.array([UITopLeft,UITopRight,UIBottomRight,UIBottomLeft], dtype=np.float32)
 
 def Touch(frame,Matrix,WFrame,HFrame,UIBG,BoxDims,hand,mpdrawing,mphands):
     IsPinching = False
@@ -181,22 +174,16 @@ def TicTacToeMain(cam):
             
     LastPinch = 0
     PinchCooldown = 1.0
-    Alpha = 0.9
 
-    options = apriltag.DetectorOptions(families="tag16h5")
-    detector = apriltag.Detector(options)
+    BotThinking = False
+    BotThinkingStart = 0
+    BotDelay = 3
+
+    Alpha = 0.8
+
     mphands = mp.solutions.hands
     mpdrawing = mp.solutions.drawing_utils
     hand = mphands.Hands(min_detection_confidence = 0.7,max_num_hands = 1)
-
-    KalmanFilters = [cv2.KalmanFilter(4,2) for _ in range(4)]
-    for kf in KalmanFilters:
-        kf.transitionMatrix = np.array([[1, 0, 1, 0], [0, 1, 0, 1], [0, 0, 1, 0], [0, 0, 0, 1]], np.float32)
-        kf.measurementMatrix = np.array([[1, 0, 0, 0], [0, 1, 0, 0]], np.float32)
-        kf.processNoiseCov = np.eye(4, dtype=np.float32) * 1e-3
-        kf.measurementNoiseCov = np.eye(2, dtype=np.float32) * 1e-2
-
-    FramesSinceDetection = 0
 
     while True:
         success, frame = cam.read()
@@ -204,61 +191,60 @@ def TicTacToeMain(cam):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         HFrame, WFrame, _ = frame.shape
         FrameArea = HFrame*WFrame
-        ApriltagResults = detector.detect(gray)
-        Marker = FindMarker(FrameArea,ApriltagResults)
         Matrix = None
         key = cv2.waitKey(1) & 0xFF
 
-        PredictedCorners = np.array([kf.predict()[:2].flatten() for kf in KalmanFilters], dtype=np.float32)
         
-        if Marker is not None:
-            DestinationPoints = CalculateUICorners(Marker)
-            FramesSinceDetection = 0
-            for i,corner in enumerate(DestinationPoints):
-                KalmanFilters[i].correct(corner)
+        DestinationPoints = CalculateUICorners(WFrame,HFrame)
+        SourcePoints = np.array([[0, 0], [w, 0], [w, h], [0, h]], dtype=np.float32)
+        Matrix, _ = cv2.findHomography(SourcePoints, DestinationPoints)
+            
+        UIBG = CreateUI(board,UIHeight,CellSize,X,O)
+        UIBG, FingerOption, IsPinching = Touch(frame, Matrix, WFrame, HFrame, UIBG, BoxDims, hand, mpdrawing, mphands)
+        GameOver = terminal(board,EMPTY)
+        CurrentPlayer = Player(board,X,O)
+        CurrentTime = time.time()
+        
+        if not GameOver and CurrentPlayer == X and not BotThinking:
+            if FingerOption != -1 and IsPinching and (CurrentTime > LastPinch+PinchCooldown):
+                row, col = FingerOption // 3, FingerOption % 3
+                if board[row][col] == EMPTY:
+                    board = result(board, (row, col),EMPTY,X,O)
+                    LastPinch = CurrentTime
+
+                    if not terminal(board,EMPTY) and Player(board,X,O) == O:
+                        print("Schedule Bot Turn")
+                        BotThinking = True
+                        BotThinkingStart = CurrentTime
+        if GameOver and IsPinching and (CurrentTime > LastPinch+PinchCooldown):
+            break
+        # PinchCooldown = IsPinching
+        if BotThinking and (CurrentTime > BotThinkingStart+BotDelay):
+            print("Bot's turn")
+            move = minimax(board,X,EMPTY,O)
+            board = result(board, move,EMPTY,X,O)
+            BotThinking = False
+        if Matrix is not None:
+            WarpedUI = cv2.warpPerspective(UIBG, Matrix, (WFrame, HFrame))
+            mask = np.sum(WarpedUI, axis=2) > 0
+            if np.any(mask):
+                frame[mask] = cv2.addWeighted(frame[mask], 1-Alpha, WarpedUI[mask], Alpha, 0)
+
+        message = ""
+        if terminal(board,EMPTY):
+            win = winner(board,EMPTY)
+            if win is None: message = "Game Over: Tie. Pinch to quit!"
+            else: message = f"Game Over: {win} wins. Pinch to quit!"
+        elif BotThinking:
+            message = "Bot is thinking..."
         else:
-            FramesSinceDetection += 1
-        
-        SmoothPoints = np.array([kf.statePost[:2].flatten() for kf in KalmanFilters], dtype=np.float32)
+            message = f"Your Turn ({X})"
+        (TextWidth, TextHeight), baseline = cv2.getTextSize(message, cv2.FONT_HERSHEY_SIMPLEX, 1, 5)
+        TextX = (WFrame-TextWidth+50)//2
+        TextY = TextHeight
+        cv2.putText(frame, message, (TextX,TextY), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 5)
 
-        if FramesSinceDetection <= 3:
-            SourcePoints = np.array([[0, 0], [w, 0], [w, h], [0, h]], dtype=np.float32)
-            Matrix, _ = cv2.findHomography(SourcePoints, SmoothPoints)
-            
-            UIBG = CreateUI(board,UIHeight,CellSize,X,O)
-            UIBG, FingerOption, IsPinching = Touch(frame, Matrix, WFrame, HFrame, UIBG, BoxDims, hand, mpdrawing, mphands)
-            GameOver = terminal(board,EMPTY)
-            CurrentPlayer = Player(board,X,O)
-            CurrentTime = time.time()
-            
-            if not GameOver and CurrentPlayer == X:
-                if FingerOption != -1 and IsPinching and (CurrentTime > LastPinch+PinchCooldown):
-                    row, col = FingerOption // 3, FingerOption % 3
-                    if board[row][col] == EMPTY:
-                        board = result(board, (row, col),EMPTY,X,O)
-                        LastPinch = CurrentTime
-            if GameOver and IsPinching and (CurrentTime > LastPinch+PinchCooldown):
-                break
-            PinchCooldown = IsPinching
-            if not terminal(board,EMPTY) and Player(board,X,O) == O:
-                print("Bot's turn")
-                move = minimax(board,X,EMPTY,O)
-                board = result(board, move,EMPTY,X,O)
-            if Matrix is not None:
-                WarpedUI = cv2.warpPerspective(UIBG, Matrix, (WFrame, HFrame))
-                mask = np.sum(WarpedUI, axis=2) > 0
-                if np.any(mask):
-                    frame[mask] = cv2.addWeighted(frame[mask], 1-Alpha, WarpedUI[mask], Alpha, 0)
-
-            message = ""
-            if terminal(board,EMPTY):
-                win = winner(board,EMPTY)
-                if win is None: message = "Game Over: Tie. Pinch to quit!."
-                else: message = f"Game Over: {win} wins. Pinch to quit!."
-            else:
-                message = f"Your Turn ({X})"
-            cv2.putText(frame, message, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 255, 255), 3)
-
+        cv2.flip(frame,1)
         cv2.imshow("VideoFeed", frame)
         if  key == ord('q'):
             break
