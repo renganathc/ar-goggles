@@ -61,6 +61,9 @@ next(game2)
 key = -1
 option=  -1
 
+filtered_pts = None
+delay_counter = 60
+
 while True:
     ret, frame2 = cap.read()
     if not ret:
@@ -71,18 +74,24 @@ while True:
         frame_height, frame_width = frame.shape
         frame_area = frame_height*frame_width
 
-    sq_width = int(frame_width//1.7)
+    if option != -1:
+        sq_width = int(frame_width//1.7)
+        x0 = (frame_width - sq_width)//2
+        y0 = canvas_width//4
 
-    x0 = (frame_width - sq_width)//2
-    y0 = canvas_width//4
+    else:
+        sq_width = int(frame_width//0.9)
+        x0 = (frame_width - sq_width)//2
+        y0 = int(canvas_width//1.02)
 
     filtered_pts = np.array([
-        [sq_width + x0, sq_width - y0],
-        [0 + x0, sq_width - y0],
-        [0 + x0, 0 - y0],
-        [sq_width + x0, 0 - y0],
-        
-    ], dtype=np.float32)
+            [sq_width + x0, sq_width - y0],
+            [0 + x0, sq_width - y0],
+            [0 + x0, 0 - y0],
+            [sq_width + x0, 0 - y0],
+            
+        ], dtype=np.float32)
+
     
     H, _ = cv2.findHomography(src_pts, filtered_pts)
     
@@ -91,18 +100,24 @@ while True:
         if option == -1:
             canvas2, option2 = Touch(frame2, H, overlay_coordinates, canvas.copy(), hands_method)
             pinch_gesture_detected = jump_gest_detector(frame2, hands_method) #in my case the jump gesture is a pinch gesture
-            if pinch_gesture_detected:
-                option = option2
+            if delay_counter < 60:
+                delay_counter += 1
+            else:
+                if pinch_gesture_detected:
+                    option = option2
         elif option==0:
+            delay_counter = 0
             cv2.destroyAllWindows()
             TicTacToeMain(cap)
             option = -1
         elif option==1 :
+            delay_counter = 0
             x = frame.copy()
             x = np.fliplr(x)
             gesture_move, gesture_fire, palm_x = detect_gestures(x, hands_method, 1000)
             canvas2= game2.send((gesture_move, gesture_fire, palm_x))
         elif option==2:
+            delay_counter = 0
             jump_gesture_detected = jump_gest_detector(frame2, hands_method)
             if jump_gesture_detected:
                 canvas2 = game.send(True)
@@ -110,6 +125,7 @@ while True:
             else:
                 canvas2 = game.send(False)
         elif option == 3:
+            delay_counter = 0
             print("Releasing camera and running command...")
             command_to_run = ["python", "objectDetection.py"]
             cap.release()
@@ -136,7 +152,7 @@ while True:
 
         frame2[:, :, :][mask] = warped_canvas[:, :, :][mask]
 
-        cv2.addWeighted(frame2, 0.9, frame2_cpy, 0.1, 0, frame2)
+        cv2.addWeighted(frame2, 0.6, frame2_cpy, 0.4, 0, frame2)
         H = None
         
     frame2 = np.fliplr(frame2)
