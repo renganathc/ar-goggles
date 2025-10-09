@@ -8,45 +8,6 @@ from space_shooter import space_shooter_game
 from gesture_space import detect_gestures
 from TicTacToe import TicTacToeMain
 
-def create_kf():
-    kf = cv2.KalmanFilter(4,2)
-    kf.transitionMatrix = np.array([[1, 0, 1, 0],
-                                [0, 1, 0, 1],
-                                [0, 0, 1, 0],
-                                [0, 0, 0, 1]], dtype=np.float32)
-
-    kf.measurementMatrix = np.array([[1, 0, 0, 0],
-                                    [0, 1, 0, 0]], dtype=np.float32)
-
-    kf.processNoiseCov = np.eye(4, dtype=np.float32) * 1e-3
-    kf.measurementNoiseCov = np.eye(2, dtype=np.float32) * 1e-2
-
-    return kf
-
-def scale_canvas(pts, scale, overlay=0.4):
-    cx = np.mean([p[0] for p in pts])
-    cy = np.mean([p[1] for p in pts])
-    
-    bottom_mid = (pts[2] + pts[3]) / 2.0
-    dx, dy = bottom_mid - np.array([cx, cy])
-    cx += overlay * dx
-    cy += overlay * dy
-
-    enlarged_pts = []
-    for (x, y) in pts:
-        new_x = cx + (x - cx) * scale
-        new_y = cy + (y - cy) * scale
-        enlarged_pts.append([new_x, new_y])
-    pts = np.array(enlarged_pts, dtype=np.float32)
-    return pts
-
-detector = apriltag.Detector(
-                            families="tag16h5",
-                            #quad_sigma=1,      # helps detect blurry edges
-                            #refine_edges=True,
-                            #decode_sharpening=0.5
-                            )
-
 canvas_width, canvas_height, canvas_scale = 1000, 1000, 9
 
 canvas = np.zeros((canvas_height, canvas_width, 3), dtype=np.uint8)
@@ -84,8 +45,6 @@ cap = cv2.VideoCapture(0)
 frame_height, frame_width, frame_area = None, None, None
 warped_canvas = None
 
-kf0, kf1, kf2, kf3 = create_kf(), create_kf(), create_kf(), create_kf()
-kf_init = False
 H = None # my homeography matrix
 
 pred_count = 0
@@ -110,66 +69,17 @@ while True:
         frame_height, frame_width = frame.shape
         frame_area = frame_height*frame_width
 
-    results = detector.detect(frame)
-    marker_found = False
+    sq_width = frame_width*2//3
 
-    if results:
-        for r in results:
-            area = cv2.contourArea(np.array(r.corners, dtype=np.int32))
-            if r.tag_id == 0 and area > frame_area*0.002: #adjust min area
-                dst_pts = np.array(r.corners, dtype=np.float32)
-                #print(dst_pts)
-                if dst_pts.shape != (4,2):
-                    continue
-
-                if not kf_init:
-                    kf0.statePre, kf0.statePost  = np.array([[dst_pts[0][0]], [dst_pts[0][1]], [0], [0]], dtype=np.float32), kf0.statePre.copy()
-                    kf1.statePre, kf1.statePost  = np.array([[dst_pts[1][0]], [dst_pts[1][1]], [0], [0]], dtype=np.float32), kf1.statePre.copy()
-                    kf2.statePre, kf2.statePost  = np.array([[dst_pts[2][0]], [dst_pts[2][1]], [0], [0]], dtype=np.float32), kf2.statePre.copy()
-                    kf3.statePre, kf3.statePost  = np.array([[dst_pts[3][0]], [dst_pts[3][1]], [0], [0]], dtype=np.float32), kf3.statePre.copy()
-                    kf_init = True
-
-                else:
-                    kf0.predict()
-                    kf0.correct(np.array([[dst_pts[0][0]], [dst_pts[0][1]]], dtype=np.float32))
-                    kf1.predict()
-                    kf1.correct(np.array([[dst_pts[1][0]], [dst_pts[1][1]]], dtype=np.float32))
-                    kf2.predict()
-                    kf2.correct(np.array([[dst_pts[2][0]], [dst_pts[2][1]]], dtype=np.float32))
-                    kf3.predict()
-                    kf3.correct(np.array([[dst_pts[3][0]], [dst_pts[3][1]]], dtype=np.float32))
-
-                    # filtered_pts = np.zeros((4, 2), dtype=np.float32)
-                    # filtered_pts[0] = kf0.statePost[:2].flatten()
-                    # filtered_pts[1] = kf1.statePost[:2].flatten()
-                    # filtered_pts[2] = kf2.statePost[:2].flatten()
-                    # filtered_pts[3] = kf3.statePost[:2].flatten()
-
-                    dst_pts = scale_canvas(dst_pts, canvas_scale)
-                    H, _ = cv2.findHomography(src_pts, dst_pts)
-                    
-                pred_count = 0
-                marker_found = True
-                break
-
-    if kf_init and pred_count <= 3 and not marker_found:
-        pred_count += 1
-        filtered_pts = np.zeros((4, 2), dtype=np.float32)
-
-        if pred_count <= 2:
-            filtered_pts[0] = kf0.predict()[:2].flatten()
-            filtered_pts[1] = kf1.predict()[:2].flatten()
-            filtered_pts[2] = kf2.predict()[:2].flatten()
-            filtered_pts[3] = kf3.predict()[:2].flatten()
+    filtered_pts = np.array([
+        [sq_width, sq_width],
+        [0, sq_width],
+        [0, 0],
+        [sq_width, 0],
         
-        else:
-            filtered_pts[0] = kf0.statePost[:2].flatten()
-            filtered_pts[1] = kf1.statePost[:2].flatten()
-            filtered_pts[2] = kf2.statePost[:2].flatten()
-            filtered_pts[3] = kf3.statePost[:2].flatten()
-
-        filtered_pts = scale_canvas(filtered_pts, canvas_scale)
-        H, _ = cv2.findHomography(src_pts, filtered_pts)
+    ], dtype=np.float32)
+    
+    H, _ = cv2.findHomography(src_pts, filtered_pts)
     
     if H is not None:
         frame2_cpy = frame2.copy()
