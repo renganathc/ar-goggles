@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import pupil_apriltags as apriltag
 from touch import Touch, jump_gest_detector
 import mediapipe
 from dino import dino_game
@@ -99,7 +98,9 @@ while True:
             TicTacToeMain(cap)
             option = -1
         elif option==1 :
-            gesture_move, gesture_fire, palm_x = detect_gestures(frame, hands_method, 1000, 700)
+            x = frame.copy()
+            x = np.fliplr(x)
+            gesture_move, gesture_fire, palm_x = detect_gestures(x, hands_method, 1000)
             canvas2= game2.send((gesture_move, gesture_fire, palm_x))
         elif option==2:
             jump_gesture_detected = jump_gest_detector(frame2, hands_method)
