@@ -69,13 +69,16 @@ while True:
         frame_height, frame_width = frame.shape
         frame_area = frame_height*frame_width
 
-    sq_width = frame_width*2//3
+    sq_width = int(frame_width//1.7)
+
+    x0 = (frame_width - sq_width)//2
+    y0 = canvas_width//4
 
     filtered_pts = np.array([
-        [sq_width, sq_width],
-        [0, sq_width],
-        [0, 0],
-        [sq_width, 0],
+        [0 + x0, sq_width - y0],
+        [sq_width + x0, sq_width - y0],
+        [sq_width + x0, 0 - y0],
+        [0 + x0, 0 - y0],
         
     ], dtype=np.float32)
     
@@ -108,6 +111,8 @@ while True:
         # making a relation between them and when passed onto wraped perspective, allows
         # any canvas size to be input. the fn simply computes h -1 and copies the pixles
         # wherever it needs to... no stretching etc... cool...
+
+        #  canvas2[:,:,:] = 255
 
         warped_canvas = cv2.warpPerspective(canvas2, H, (frame_width, frame_height))
         mask = np.any(warped_canvas != 0, axis=2)
