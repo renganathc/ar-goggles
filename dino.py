@@ -61,10 +61,10 @@ def dino_game():
             obs_rect = pygame.Rect(obs['x'], obs['y'], obs['w'], obs['h'])
             if dino_rect.colliderect(obs_rect):
                 print("Game Over!")
-                #game_over = True
+                game_over = True
                 break
         
-        screen.fill((1, 1, 1))
+        screen.fill((0, 0, 0))
         score_font = pygame.font.SysFont(None, 90)
         score_text = score_font.render(str(score), True, (100,0,100))
         screen.blit(score_text, (w - 140, 100))

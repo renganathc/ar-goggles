@@ -47,7 +47,6 @@ detector = apriltag.Detector(
 canvas_width, canvas_height, canvas_scale = 1000, 1000, 7
 
 canvas = np.zeros((canvas_height, canvas_width, 3), dtype=np.uint8)
-canvas[:,:,2] = 100
 height, width, _ = canvas.shape
 height = int(height*6/10) #virtual height
 
