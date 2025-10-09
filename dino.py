@@ -11,7 +11,7 @@ def dino_game():
     h, w = 450, 750
     screen = pygame.Surface((w, h))
     bg_image = pygame.image.load("icon_files/dino_bg.png")
-    bg_image = pygame.transform.scale(bg_image, (w - 40, h))
+    bg_image = pygame.transform.scale(bg_image, (w, h))
 
     # Dino properties
     dino_y = h - 100
