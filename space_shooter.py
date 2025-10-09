@@ -162,6 +162,11 @@ def draw_boss(frame, boss):
 
 
 def space_shooter_game():
+
+    gesture_move = False
+    gesture_fire = False
+    palm_x = game.player_x
+    
     while game.run:
         frame = np.zeros((HEIGHT, WIDTH, 3), dtype=np.uint8)
         cv2.rectangle(frame, (0, 0), (WIDTH, HEIGHT), BG, -1)
@@ -176,10 +181,6 @@ def space_shooter_game():
             spawn_powerup()
 
         # Hand input detection (no hand landmarks drawn on frame)
-        gesture_move = False
-        gesture_fire = False
-        palm_x = game.player_x
-        gesture_move, gesture_fire, palm_x=yield frame
         
         # Game states
         if game.state == "MENU":
@@ -368,8 +369,8 @@ def space_shooter_game():
             cv2.putText(frame, f"HP: {game.player_health}", (WIDTH - 130, 36), cv2.FONT_HERSHEY_DUPLEX, 1.2, GREEN, 2)
             cv2.putText(frame, "(Palm=move, Palm+Index=fire, Q/ESC=quit)", (270, 36), cv2.FONT_HERSHEY_SIMPLEX, 1.05, (230, 240, 240), 2)
 
-        frame = np.flip(frame,axis=1)
+        frame = np.flip(frame,axis=0)
         
-        yield frame
+        gesture_move, gesture_fire, palm_x=yield frame
 
         game.frame_counter += 1
