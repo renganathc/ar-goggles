@@ -6,6 +6,7 @@ import mediapipe
 from dino import dino_game
 from space_shooter import space_shooter_game
 from gesture_space import detect_gestures
+from TicTacToe import TicTacToeMain
 
 def create_kf():
     kf = cv2.KalmanFilter(4,2)
@@ -176,15 +177,19 @@ while True:
             canvas2, option2 = Touch(frame2, H, overlay_coordinates, canvas.copy(), hands_method)
             option = option2
         elif option==0:
+            cv2.destroyAllWindows()
+            TicTacToeMain(cap)
+            option = -1
+        elif option==1 :
+            gesture_move, gesture_fire, palm_x = detect_gestures(frame, hands_method, 1000, 700)
+            canvas2= game2.send((gesture_move, gesture_fire, palm_x))
+        elif option==2:
             jump_gesture_detected = jump_gest_detector(frame2, hands_method)
             if jump_gesture_detected:
                 canvas2 = game.send(True)
                 print("space hit")
             else:
                 canvas2 = game.send(False)
-        elif option==1 :
-            gesture_move, gesture_fire, palm_x = detect_gestures(frame, hands_method, 1000, 700)
-            canvas2= game2.send((gesture_move, gesture_fire, palm_x))
             
 
         # warped perspective... i like to think of it as 'h matrix' takin the src and dst points,
