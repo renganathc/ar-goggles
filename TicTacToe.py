@@ -43,7 +43,10 @@ def Touch(frame,Matrix,WFrame,HFrame,UIBG,BoxDims,hand,mpdrawing,mphands):
         mpdrawing.draw_landmarks(frame, HandLandmarks, mphands.HAND_CONNECTIONS)
         IndexTip = HandLandmarks.landmark[mphands.HandLandmark.INDEX_FINGER_TIP]
         ThumbTip = HandLandmarks.landmark[mphands.HandLandmark.THUMB_TIP]
+
         IndexPos = (int(IndexTip.x * WFrame),int(IndexTip.y * HFrame))
+        cv2.circle(frame,IndexPos,25,(0,0,255),-1)
+
         try:
             InvMatrix = np.linalg.inv(Matrix)
             FingerPosOnUI = cv2.perspectiveTransform(np.array([[IndexPos]], dtype=np.float32), InvMatrix)
