@@ -1,9 +1,10 @@
-import pupil_apriltags as apriltag
+import apriltag
 import cv2
 import numpy as np
 import math
 import mediapipe as mp
 import copy
+import time
 
 def CreateUI(BoardState,UIHeight,CellSize,X,O):
 	UIBG = np.zeros((UIHeight,UIHeight,3),dtype=np.uint8)
@@ -15,10 +16,10 @@ def CreateUI(BoardState,UIHeight,CellSize,X,O):
 		for c in range(3):
 			center_x, center_y = c * CellSize + CellSize // 2, r * CellSize + CellSize // 2
 			if BoardState[r][c] == X:
-				cv2.line(UIBG, (center_x - 50, center_y - 50), (center_x + 50, center_y + 50), (0, 0, 255), 6)
-				cv2.line(UIBG, (center_x + 50, center_y - 50), (center_x - 50, center_y + 50), (0, 0, 255), 6)
+				cv2.line(UIBG, (center_x - 50, center_y - 50), (center_x + 50, center_y + 50), (255, 0, 0), 6)
+				cv2.line(UIBG, (center_x + 50, center_y - 50), (center_x - 50, center_y + 50), (255, 0, 0), 6)
 			elif BoardState[r][c] == O:
-				cv2.circle(UIBG, (center_x, center_y), 50, (255, 0, 0), 6)
+				cv2.circle(UIBG, (center_x, center_y), 50, (0, 0, 255), 6)
 
 	return UIBG
 
@@ -178,8 +179,9 @@ def TicTacToeMain(cam):
         for c in range(3):
             BoxDims.append((c * CellSize, r * CellSize, CellSize, CellSize))
             
-    PinchCooldown = False
-    Alpha = 0.6
+    LastPinch = 0
+    PinchCooldown = 1.0
+    Alpha = 0.9
 
     options = apriltag.DetectorOptions(families="tag16h5")
     detector = apriltag.Detector(options)
@@ -227,13 +229,15 @@ def TicTacToeMain(cam):
             UIBG, FingerOption, IsPinching = Touch(frame, Matrix, WFrame, HFrame, UIBG, BoxDims, hand, mpdrawing, mphands)
             GameOver = terminal(board,EMPTY)
             CurrentPlayer = Player(board,X,O)
+            CurrentTime = time.time()
             
             if not GameOver and CurrentPlayer == X:
-                if FingerOption != -1 and IsPinching and not PinchCooldown:
+                if FingerOption != -1 and IsPinching and (CurrentTime > LastPinch+PinchCooldown):
                     row, col = FingerOption // 3, FingerOption % 3
                     if board[row][col] == EMPTY:
                         board = result(board, (row, col),EMPTY,X,O)
-            if GameOver and IsPinching and not PinchCooldown:
+                        LastPinch = CurrentTime
+            if GameOver and IsPinching and (CurrentTime > LastPinch+PinchCooldown):
                 break
             PinchCooldown = IsPinching
             if not terminal(board,EMPTY) and Player(board,X,O) == O:
