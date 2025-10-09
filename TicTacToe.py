@@ -242,9 +242,10 @@ def TicTacToeMain(cam):
         (TextWidth, TextHeight), baseline = cv2.getTextSize(message, cv2.FONT_HERSHEY_SIMPLEX, 1, 5)
         TextX = (WFrame-TextWidth+50)//2
         TextY = TextHeight
-        cv2.putText(frame, message, (TextX,TextY), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 5)
 
-        cv2.flip(frame,1)
+        frame = cv2.flip(frame,1)
+        cv2.putText(frame, message, (TextX,TextY), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 5)
+        
         cv2.imshow("VideoFeed", frame)
         if  key == ord('q'):
             break
