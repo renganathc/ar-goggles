@@ -10,6 +10,8 @@ def dino_game():
     # Get video feed size
     h, w = 450, 750
     screen = pygame.Surface((w, h))
+    bg_image = pygame.image.load("icon_files/dino_bg.png")
+    bg_image = pygame.transform.scale(bg_image, (w - 40, h))
 
     # Dino properties
     dino_y = h - 100
@@ -63,14 +65,16 @@ def dino_game():
                 print("Game Over!")
                 game_over = True
                 break
+
+        elevation = 77 #for accomodating the floor in the image
         
-        screen.fill((0, 0, 0))
-        score_font = pygame.font.SysFont(None, 90)
+        screen.blit(bg_image, (0, 0))
+        score_font = pygame.font.SysFont(None, 72)
         score_text = score_font.render(str(score), True, (100,0,100))
-        screen.blit(score_text, (w - 140, 100))
-        pygame.draw.rect(screen, (0,255,0), (50, dino_y, 50, 50))  # green dino
+        screen.blit(score_text, (w - 160, 40))
+        pygame.draw.rect(screen, (0,255,0), (50, dino_y - elevation, 50, 50))  # green dino
         for obs in obstacles:
-            pygame.draw.rect(screen, (255,0,0), (obs['x'], obs['y'], obs['w'], obs['h']))
+            pygame.draw.rect(screen, (255,0,0), (obs['x'], obs['y'] - elevation, obs['w'], obs['h']))
 
         #clock.tick(frame_rate)
         score += 1
@@ -87,6 +91,7 @@ def dino_game():
         frame = np.transpose(frame, (1,0,2))  # pygame stores arrays differently
         frame = np.flipud(frame)
         frame = cv2.resize(frame, (1000, 600))
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         x = yield frame
 
         if x:
@@ -98,9 +103,9 @@ def dino_game():
         game_over_frame_count += 1
         if game_over_frame_count > 115:
             break
-        font1 = pygame.font.SysFont(None, 160)
-        font2 = pygame.font.SysFont(None, 100)
-        line1 = font1.render("Game Over!", True, (0,100,200))
+        font1 = pygame.font.SysFont(None, 150)
+        font2 = pygame.font.SysFont(None, 92)
+        line1 = font1.render("Game Over!", True, (225,173,0))
         line2 = font2.render("Score: " + str(score - 1), True, (255,0,0))
 
         line1_rect = line1.get_rect(center=(w//2, h//2 - 50))
@@ -112,6 +117,7 @@ def dino_game():
         frame = np.transpose(frame, (1,0,2))  # pygame stores arrays differently
         frame = np.flipud(frame)
         frame = cv2.resize(frame, (1000, 600))
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         yield frame
 
     pygame.quit()

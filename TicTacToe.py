@@ -1,4 +1,4 @@
-import apriltag
+import pupil_apriltags as apriltag
 import cv2
 import numpy as np
 import math
