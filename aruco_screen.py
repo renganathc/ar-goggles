@@ -7,6 +7,7 @@ from dino import dino_game
 from space_shooter import space_shooter_game
 from gesture_space import detect_gestures
 from TicTacToe import TicTacToeMain
+import subprocess
 
 canvas_width, canvas_height, canvas_scale = 1000, 1000, 9
 
@@ -15,23 +16,25 @@ height, width, _ = canvas.shape
 height = int(height*6/10) #virtual height
 
 overlay_coordinates = [
-    [(width//4 - width//11, height//2 - height//3),(width//4 + width//11, height//2 + height//3)],
-    [(width*2//4 - width//11, height//2 - height//3),(width*2//4 + width//11, height//2 + height//3)],
-    [(width*3//4 - width//11, height//2 - height//3),(width*3//4 + width//11, height//2 + height//3)],
-    ]
+    # --- First Row ---
+    [(width * 1 // 3 - width // 8, height * 1 // 3 - height // 8),(width * 1 // 3 + width // 8, height * 1 // 3 + height // 8)],
+    [(width * 2 // 3 - width // 8, height * 1 // 3 - height // 8),(width * 2 // 3 + width // 8, height * 1 // 3 + height // 8)],
+
+    # --- Second Row ---
+    [(width * 1 // 3 - width // 8, height * 2 // 3 - height // 8),(width * 1 // 3 + width // 8, height * 2 // 3 + height // 8)],
+    [(width * 2 // 3 - width // 8, height * 2 // 3 - height // 8),(width * 2 // 3 + width // 8, height * 2 // 3 + height // 8)],
+]
+
+icon_path = ["icon_files/icon0.png", "icon_files/icon1.png", "icon_files/icon2.png", "icon_files/icon3.png"]
 
 for i,overlay in enumerate(overlay_coordinates):
     start, end = overlay
+    icon = cv2.imread(icon_path[i])
+    if icon is not None:
+        icon = cv2.resize(icon, (end[0] - start[0], end[1] - start[1]))
+        icon = cv2.flip(icon, 0)
+        canvas[start[1]:end[1], start[0]:end[0]] = icon
 
-    if i == 0:
-        icon = cv2.imread("icon_files/tic_icon.png")
-    elif i == 1:
-        icon = cv2.imread("icon_files/connect_icon.png")
-    elif i == 2:
-        icon = cv2.imread("icon_files/yolo_icon.png")
-
-    icon = cv2.resize(icon, (end[0] - start[0], end[1] - start[1]))
-    canvas[start[1]:end[1], start[0]:end[0]] = icon[::-1, :]
 
 src_pts = np.array([
     [0, 0],
@@ -105,6 +108,19 @@ while True:
                 print("space hit")
             else:
                 canvas2 = game.send(False)
+        elif option == 3:
+            print("Releasing camera and running command...")
+            command_to_run = ["python", "objectDetection.py"]
+            cap.release()
+            cv2.destroyAllWindows() 
+            subprocess.run(command_to_run)
+            print("Re-initializing camera for AR Interface...")
+            cap = cv2.VideoCapture(0)
+            if not cap.isOpened():
+                print("FATAL: Could not re-open camera. Exiting.")
+                break
+            print("Command finished. Returning to menu.")
+            option = -1
             
 
         # warped perspective... i like to think of it as 'h matrix' takin the src and dst points,
