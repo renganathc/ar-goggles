@@ -175,7 +175,9 @@ while True:
         frame2_cpy = frame2.copy()
         if option == -1:
             canvas2, option2 = Touch(frame2, H, overlay_coordinates, canvas.copy(), hands_method)
-            option = option2
+            pinch_gesture_detected = jump_gest_detector(frame2, hands_method) #in my case the jump gesture is a pinch gesture
+            if pinch_gesture_detected:
+                option = option2
         elif option==0:
             cv2.destroyAllWindows()
             TicTacToeMain(cap)
