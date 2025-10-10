@@ -9,9 +9,9 @@ def dino_game():
 
     game_over = False
 
-    jump_sound = pygame.mixer.Sound("sounds/jump-small.wav")
-    game_start_sound = pygame.mixer.Sound("sounds/mario_track.mp3")
-    game_over_sound = pygame.mixer.Sound("sounds/mariodie.wav")
+    jump_sound = pygame.mixer.Sound("sounds/mario_assets/jump-small.wav")
+    game_start_sound = pygame.mixer.Sound("sounds/mario_assets/mario_track.mp3")
+    game_over_sound = pygame.mixer.Sound("sounds/mario_assets/mariodie.wav")
     game_start_sound.set_volume(0.7)
 
     # Get video feed size
