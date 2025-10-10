@@ -32,21 +32,30 @@ def Touch(frame, H, element_coordinates, canvas, hands_method):
 	return canvas,element,index_pos
 
 def jump_gest_detector(frame, hands_method):
-	frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2RGB)
-	result = hands_method.process(frame)
-	h, w = frame.shape[:2]
-	jump_gesture_detected = False
+    frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2RGB)
+    result = hands_method.process(frame)
+    h, w = frame.shape[:2]
+    jump_gesture_detected = False
 
-	if result.multi_hand_landmarks:
-		hand_landmarks = result.multi_hand_landmarks[0]
-		index = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
-		thumb = hand_landmarks.landmark[mp_hands.HandLandmark.THUMB_TIP]
+    if result.multi_hand_landmarks:
+        hand = result.multi_hand_landmarks[0]
+        index = hand.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
+        thumb = hand.landmark[mp_hands.HandLandmark.THUMB_TIP]
+        wrist = hand.landmark[mp_hands.HandLandmark.WRIST]
+        index_base = hand.landmark[mp_hands.HandLandmark.INDEX_FINGER_MCP]
 
-		ix, iy = int(index.x * w), int(index.y * h)
-		tx, ty = int(thumb.x * w), int(thumb.y * h)
+        # Get pixel coords
+        ix, iy = int(index.x * w), int(index.y * h)
+        tx, ty = int(thumb.x * w), int(thumb.y * h)
+        wx, wy = int(wrist.x * w), int(wrist.y * h)
+        mx, my = int(index_base.x * w), int(index_base.y * h)
 
-		distance = ((ix - tx)**2 + (iy - ty)**2)**0.5
-		if distance < int(h/11.5): # sensitivity parameter :)
-			jump_gesture_detected = True
+        # Hand size = distance between wrist and middle fingertip
+        hand_size = ((mx - wx)**2 + (my - wy)**2)**0.5
+        pinch_dist = ((ix - tx)**2 + (iy - ty)**2)**0.5
 
-	return jump_gesture_detected
+        # Detect pinch when fingers are very close compared to hand size
+        if pinch_dist < 0.35 * hand_size:
+            jump_gesture_detected = True
+
+    return jump_gesture_detected

@@ -33,6 +33,7 @@ for i,overlay in enumerate(overlay_coordinates):
         icon = cv2.resize(icon, (end[0] - start[0], end[1] - start[1]))
         icon = cv2.flip(icon, 0)
         canvas[start[1]:end[1], start[0]:end[0]] = icon
+        cv2.rectangle(canvas, (start[0],start[1]), (end[0],end[1]), (0,0,1), 10)
 
 
 src_pts = np.array([
@@ -64,7 +65,7 @@ key = -1
 option=  -1
 
 filtered_pts = None
-delay_counter = 60
+delay_counter = 0
 
 indexPos = (0,0)
 
@@ -106,6 +107,11 @@ while True:
             pinch_gesture_detected = jump_gest_detector(frame2, hands_method) #in my case the jump gesture is a pinch gesture
             if delay_counter < 60:
                 delay_counter += 1
+                if delay_counter == 0:
+                    game = dino_game()
+                    game2=space_shooter_game()
+                    next(game)
+                    next(game2) 
             else:
                 if pinch_gesture_detected:
                     option = option2
@@ -123,11 +129,16 @@ while True:
         elif option==2:
             delay_counter = 0
             jump_gesture_detected = jump_gest_detector(frame2, hands_method)
-            if jump_gesture_detected:
-                canvas2 = game.send(True)
-                print("space hit")
-            else:
-                canvas2 = game.send(False)
+            try:
+                if jump_gesture_detected:
+                    canvas2 = game.send(True)
+                    print("space hit")
+                else:
+                    canvas2 = game.send(False)
+            except StopIteration:
+                print("Game generator ended.")
+                option = -1
+
         elif option == 3:
             delay_counter = 0
             print("Releasing camera and running command...")
@@ -156,7 +167,7 @@ while True:
 
         frame2[:, :, :][mask] = warped_canvas[:, :, :][mask]
 
-        cv2.addWeighted(frame2, 0.6, frame2_cpy, 0.4, 0, frame2)
+        cv2.addWeighted(frame2, 0.8, frame2_cpy, 0.2, 0, frame2)
         H = None
     if option == -1:
         cv2.circle(frame2,indexPos,25,(0,0,255),-1)    

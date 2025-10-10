@@ -66,7 +66,7 @@ def dino_game():
                 game_over = True
                 break
 
-        elevation = 77 #for accomodating the floor in the image
+        elevation = 75 #for accomodating the floor in the image
         
         screen.blit(bg_image, (0, 0))
         score_font = pygame.font.SysFont(None, 72)
@@ -101,7 +101,7 @@ def dino_game():
 
     while game_over:
         game_over_frame_count += 1
-        if game_over_frame_count > 115:
+        if game_over_frame_count > 60:
             break
         font1 = pygame.font.SysFont(None, 150)
         font2 = pygame.font.SysFont(None, 92)
