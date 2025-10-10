@@ -107,11 +107,6 @@ while True:
             pinch_gesture_detected = jump_gest_detector(frame2, hands_method) #in my case the jump gesture is a pinch gesture
             if delay_counter < 60:
                 delay_counter += 1
-                if delay_counter == 0:
-                    game = dino_game()
-                    game2=space_shooter_game()
-                    next(game)
-                    next(game2) 
             else:
                 if pinch_gesture_detected:
                     option = option2
