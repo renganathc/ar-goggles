@@ -6,21 +6,21 @@ import copy
 import time
 
 def CreateUI(BoardState,UIHeight,CellSize,X,O):
-	UIBG = np.zeros((UIHeight,UIHeight,3),dtype=np.uint8)
+    UIBG = np.zeros((UIHeight,UIHeight,3),dtype=np.uint8)
 
-	for i in range(1, 3):
-		cv2.line(UIBG, (i * CellSize, 0), (i * CellSize, UIHeight), (255,255,255), 10)
-		cv2.line(UIBG, (0, i * CellSize), (UIHeight, i * CellSize), (255,255,255), 10)
-	for r in range(3):
-		for c in range(3):
-			center_x, center_y = c * CellSize + CellSize // 2, r * CellSize + CellSize // 2
-			if BoardState[r][c] == X:
-				cv2.line(UIBG, (center_x - 50, center_y - 50), (center_x + 50, center_y + 50), (255, 0, 0), 6)
-				cv2.line(UIBG, (center_x + 50, center_y - 50), (center_x - 50, center_y + 50), (255, 0, 0), 6)
-			elif BoardState[r][c] == O:
-				cv2.circle(UIBG, (center_x, center_y), 50, (0, 0, 255), 6)
+    for i in range(1, 3):
+        cv2.line(UIBG, (i * CellSize, 0), (i * CellSize, UIHeight), (255,255,255), 10)
+        cv2.line(UIBG, (0, i * CellSize), (UIHeight, i * CellSize), (255,255,255), 10)
+    for r in range(3):
+        for c in range(3):
+            center_x, center_y = c * CellSize + CellSize // 2, r * CellSize + CellSize // 2
+            if BoardState[r][c] == X:
+                cv2.line(UIBG, (center_x - 50, center_y - 50), (center_x + 50, center_y + 50), (255, 0, 0), 6)
+                cv2.line(UIBG, (center_x + 50, center_y - 50), (center_x - 50, center_y + 50), (255, 0, 0), 6)
+            elif BoardState[r][c] == O:
+                cv2.circle(UIBG, (center_x, center_y), 50, (0, 0, 255), 6)
 
-	return UIBG
+    return UIBG
 
 def CalculateUICorners(WFrame,HFrame,UIHeight):
     Factor = 2
@@ -68,11 +68,11 @@ def Touch(frame,Matrix,WFrame,HFrame,UIBG,BoxDims,hand,mpdrawing,mphands):
     return UIBG,FingerOption,IsPinching,IndexPos
 
 def FindMarker(FrameArea,ApriltagResults):
-	for r in ApriltagResults:
-		MarkerArea = cv2.contourArea(np.array(r.corners, dtype=np.int32))
-		if r.tag_id == 0 and MarkerArea > (FrameArea*0.008):
-			return r
-	return None		
+    for r in ApriltagResults:
+        MarkerArea = cv2.contourArea(np.array(r.corners, dtype=np.int32))
+        if r.tag_id == 0 and MarkerArea > (FrameArea*0.008):
+            return r
+    return None     
 
 def InitialState(EMPTY):
     return [[EMPTY, EMPTY, EMPTY], [EMPTY, EMPTY, EMPTY], [EMPTY, EMPTY, EMPTY]]
@@ -176,20 +176,27 @@ def TicTacToeMain(cam):
     for r in range(3):
         for c in range(3):
             BoxDims.append((c * CellSize, r * CellSize, CellSize, CellSize))
-            
+
     LastPinch = 0
-    PinchCooldown = 1.0
+    PinchCooldown = 2.0
 
     BotThinking = False
     BotThinkingStart = 0
-    BotDelay = 3
+    BotDelay = 1.5
 
-    Alpha = 0.8
+    StartDelay = 2.0
+    StartTime = time.time()
+
+    Alpha = 1
 
     mphands = mp.solutions.hands
     mpdrawing = mp.solutions.drawing_utils
     hand = mphands.Hands(min_detection_confidence = 0.7,max_num_hands = 1)
 
+    CurrentTime = time.time()
+    while (CurrentTime <= StartTime+StartDelay):
+        CurrentTime = time.time()
+        pass
     while True:
         success, frame = cam.read()
         if not success: break

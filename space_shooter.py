@@ -16,8 +16,8 @@ ENEMY_ROWS_START = 2        # Starting enemy rows (fixed)
 MAX_ENEMY_ROWS = 5
 ENEMY_COLS = 8
 FIRE_DELAY = 0.28
-LIVES_INIT = 3
-PLAYER_MAX_HEALTH = 6
+LIVES_INIT = 1
+PLAYER_MAX_HEALTH = 1
 POWERUP_SIZE = 20
 POWERUP_SPEED = 3
 BOSS_SPAWN_SCORE = 150
@@ -367,10 +367,12 @@ def space_shooter_game():
             cv2.putText(frame, f"SCORE: {game.score}", (22, 36), cv2.FONT_HERSHEY_DUPLEX, 1.2, WHITE, 2)
             cv2.putText(frame, f"LIVES: {game.lives}", (WIDTH - 260, 36), cv2.FONT_HERSHEY_DUPLEX, 1.2, WHITE, 2)
             cv2.putText(frame, f"HP: {game.player_health}", (WIDTH - 130, 36), cv2.FONT_HERSHEY_DUPLEX, 1.2, GREEN, 2)
-            cv2.putText(frame, "(Palm=move, Palm+Index=fire, Q/ESC=quit)", (270, 36), cv2.FONT_HERSHEY_SIMPLEX, 1.05, (230, 240, 240), 2)
 
-        frame = np.flip(frame,axis=0)
+        x, y, _ = frame.shape
+        frame = cv2.resize(frame, (y, int(x*0.93)))
         
         gesture_move, gesture_fire, palm_x=yield frame
 
         game.frame_counter += 1
+
+    return

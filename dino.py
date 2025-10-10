@@ -20,12 +20,12 @@ def dino_game():
     is_jumping = False
 
     obstacles = []  # list of dicts: {'x', 'y', 'w', 'h'}
-    obstacle_speed = 17
+    obstacle_speed = 19
     spawn_timer = 0
 
     score = 0
     min_dist, max_dist = 30, 50 # next block
-    max_obs_height = 120
+    max_obs_height = 142
 
     def jump_fn():
         nonlocal is_jumping, dino_vel
@@ -89,7 +89,6 @@ def dino_game():
         
         frame = pygame.surfarray.array3d(screen)
         frame = np.transpose(frame, (1,0,2))  # pygame stores arrays differently
-        frame = np.flipud(frame)
         frame = cv2.resize(frame, (1000, 600))
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         x = yield frame
@@ -101,7 +100,7 @@ def dino_game():
 
     while game_over:
         game_over_frame_count += 1
-        if game_over_frame_count > 60:
+        if game_over_frame_count > 30:
             break
         font1 = pygame.font.SysFont(None, 150)
         font2 = pygame.font.SysFont(None, 92)
@@ -115,9 +114,9 @@ def dino_game():
 
         frame = pygame.surfarray.array3d(screen)
         frame = np.transpose(frame, (1,0,2))  # pygame stores arrays differently
-        frame = np.flipud(frame)
         frame = cv2.resize(frame, (1000, 600))
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         yield frame
 
     pygame.quit()
+    return
