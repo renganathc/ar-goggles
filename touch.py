@@ -7,6 +7,7 @@ mp_drawing = mp.solutions.drawing_utils
 #hands_method = mphands.Hands(max_num_hands=1)
 
 def Touch(frame, H, element_coordinates, canvas, hands_method):
+	index_pos = (-1,-1)
 	frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2RGB)
 	result = hands_method.process(frame)
 	frame_height, frame_width = frame.shape[:2]
@@ -28,7 +29,7 @@ def Touch(frame, H, element_coordinates, canvas, hands_method):
 					cv2.rectangle(canvas, (x0,y0), (x1,y1), (0,0,255), 10)
 					break
 
-	return canvas,element
+	return canvas,element,index_pos
 
 def jump_gest_detector(frame, hands_method):
 	frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2RGB)

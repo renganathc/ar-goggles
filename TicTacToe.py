@@ -9,8 +9,8 @@ def CreateUI(BoardState,UIHeight,CellSize,X,O):
 	UIBG = np.zeros((UIHeight,UIHeight,3),dtype=np.uint8)
 
 	for i in range(1, 3):
-		cv2.line(UIBG, (i * CellSize, 0), (i * CellSize, UIHeight), (1, 1, 1), 40)
-		cv2.line(UIBG, (0, i * CellSize), (UIHeight, i * CellSize), (1, 1, 1), 40)
+		cv2.line(UIBG, (i * CellSize, 0), (i * CellSize, UIHeight), (255,255,255), 10)
+		cv2.line(UIBG, (0, i * CellSize), (UIHeight, i * CellSize), (255,255,255), 10)
 	for r in range(3):
 		for c in range(3):
 			center_x, center_y = c * CellSize + CellSize // 2, r * CellSize + CellSize // 2
@@ -29,7 +29,7 @@ def CalculateUICorners(WFrame,HFrame,UIHeight):
     UITopRight = (UITopLeftX+UIHeight,UITopLeftY)
     UIBottomLeft = (UITopLeftX,UITopLeftY+UIHeight)
     UIBottomRight = (UITopLeftX+UIHeight,UITopLeftY+UIHeight)
-    
+       
     return np.array([UITopLeft,UITopRight,UIBottomRight,UIBottomLeft], dtype=np.float32)
 
 def Touch(frame,Matrix,WFrame,HFrame,UIBG,BoxDims,hand,mpdrawing,mphands):
@@ -37,6 +37,7 @@ def Touch(frame,Matrix,WFrame,HFrame,UIBG,BoxDims,hand,mpdrawing,mphands):
     FingerOption = -1
     RGB = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     MpResult = hand.process(RGB)
+    IndexPos = (0,0)
     
     if MpResult.multi_hand_landmarks and Matrix is not None:
         HandLandmarks = MpResult.multi_hand_landmarks[0]
@@ -45,7 +46,6 @@ def Touch(frame,Matrix,WFrame,HFrame,UIBG,BoxDims,hand,mpdrawing,mphands):
         ThumbTip = HandLandmarks.landmark[mphands.HandLandmark.THUMB_TIP]
 
         IndexPos = (int(IndexTip.x * WFrame),int(IndexTip.y * HFrame))
-        cv2.circle(frame,IndexPos,25,(0,0,255),-1)
 
         try:
             InvMatrix = np.linalg.inv(Matrix)
@@ -65,7 +65,7 @@ def Touch(frame,Matrix,WFrame,HFrame,UIBG,BoxDims,hand,mpdrawing,mphands):
             (bx,by,bw,bh) = BoxDims[FingerOption]
             cv2.rectangle(UIBG, (bx,by), (bx+bw,by+bh), (0,255,0), -1)
             
-    return UIBG,FingerOption,IsPinching
+    return UIBG,FingerOption,IsPinching,IndexPos
 
 def FindMarker(FrameArea,ApriltagResults):
 	for r in ApriltagResults:
@@ -201,11 +201,22 @@ def TicTacToeMain(cam):
 
         
         DestinationPoints = CalculateUICorners(WFrame,HFrame,UIHeight)
+        DestinationPointsInt = np.int32(DestinationPoints)
+
+        TopLeftCorner = DestinationPointsInt[0]
+        XStart = TopLeftCorner[0]
+        YStart = TopLeftCorner[1]
+
+        BoardWidth = DestinationPointsInt[1][0] - DestinationPointsInt[0][0]
+        BoardHeight = DestinationPointsInt[3][1] - DestinationPointsInt[0][1]
+
+        XEnd = XStart + BoardWidth
+        YEnd = YStart + BoardHeight
         SourcePoints = np.array([[0, 0], [w, 0], [w, h], [0, h]], dtype=np.float32)
         Matrix, _ = cv2.findHomography(SourcePoints, DestinationPoints)
             
         UIBG = CreateUI(board,UIHeight,CellSize,X,O)
-        UIBG, FingerOption, IsPinching = Touch(frame, Matrix, WFrame, HFrame, UIBG, BoxDims, hand, mpdrawing, mphands)
+        UIBG, FingerOption, IsPinching, IndexPos = Touch(frame, Matrix, WFrame, HFrame, UIBG, BoxDims, hand, mpdrawing, mphands)
         GameOver = terminal(board,EMPTY)
         CurrentPlayer = Player(board,X,O)
         CurrentTime = time.time()
@@ -230,10 +241,12 @@ def TicTacToeMain(cam):
             board = result(board, move,EMPTY,X,O)
             BotThinking = False
         if Matrix is not None:
-            WarpedUI = cv2.warpPerspective(UIBG, Matrix, (WFrame, HFrame))
-            mask = np.sum(WarpedUI, axis=2) > 0
-            if np.any(mask):
-                frame[mask] = cv2.addWeighted(frame[mask], 1-Alpha, WarpedUI[mask], Alpha, 0)
+            roi = frame[YStart:YEnd,XStart:XEnd]
+            UIBG = CreateUI(board,UIHeight,CellSize,X,O)
+            if roi.shape[:2] == UIBG.shape[:2]:
+                BlendedROI = cv2.addWeighted(roi,1-Alpha,UIBG,Alpha,0)
+                frame[YStart:YEnd,XStart:XEnd] = BlendedROI
+                cv2.circle(frame,IndexPos,25,(0,0,255),-1)
 
         message = ""
         if terminal(board,EMPTY):

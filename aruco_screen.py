@@ -66,6 +66,8 @@ option=  -1
 filtered_pts = None
 delay_counter = 60
 
+indexPos = (0,0)
+
 while True:
     ret, frame2 = cap.read()
     if not ret:
@@ -100,7 +102,7 @@ while True:
     if H is not None:
         frame2_cpy = frame2.copy()
         if option == -1:
-            canvas2, option2 = Touch(frame2, H, overlay_coordinates, canvas.copy(), hands_method)
+            canvas2, option2, indexPos = Touch(frame2, H, overlay_coordinates, canvas.copy(), hands_method)
             pinch_gesture_detected = jump_gest_detector(frame2, hands_method) #in my case the jump gesture is a pinch gesture
             if delay_counter < 60:
                 delay_counter += 1
@@ -156,7 +158,8 @@ while True:
 
         cv2.addWeighted(frame2, 0.6, frame2_cpy, 0.4, 0, frame2)
         H = None
-        
+    if option == -1:
+        cv2.circle(frame2,indexPos,25,(0,0,255),-1)    
     frame2 = np.fliplr(frame2)
     cv2.imshow("video", frame2)
     key = cv2.waitKey(33)
