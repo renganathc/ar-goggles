@@ -5,13 +5,23 @@ import cv2
 
 def dino_game():
     pygame.init()
+    pygame.mixer.init()
+
     game_over = False
+
+    jump_sound = pygame.mixer.Sound("sounds/jump-small.wav")
+    game_start_sound = pygame.mixer.Sound("sounds/mario_track.mp3")
+    game_over_sound = pygame.mixer.Sound("sounds/mariodie.wav")
+    game_start_sound.set_volume(0.7)
 
     # Get video feed size
     h, w = 450, 750
     screen = pygame.Surface((w, h))
     bg_image = pygame.image.load("icon_files/dino_bg.png")
     bg_image = pygame.transform.scale(bg_image, (w, h))
+
+    mario_image = pygame.image.load("icon_files/mario.png")
+    mario_image = pygame.transform.scale(mario_image, (65, 65))
 
     # Dino properties
     dino_y = h - 100
@@ -25,11 +35,12 @@ def dino_game():
 
     score = 0
     min_dist, max_dist = 30, 50 # next block
-    max_obs_height = 142
+    max_obs_height = 104
 
     def jump_fn():
         nonlocal is_jumping, dino_vel
         if not is_jumping:
+            jump_sound.play()
             dino_vel = -34   # jump strength
             is_jumping = True
 
@@ -39,6 +50,9 @@ def dino_game():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+
+        if score == 1:
+            game_start_sound.play()
 
         dino_y += dino_vel
         dino_vel += gravity
@@ -57,29 +71,31 @@ def dino_game():
 
         obstacles = [o for o in obstacles if o['x'] + o['w'] > 0]
 
-        dino_rect = pygame.Rect(50, dino_y, 50, 50)
+        dino_rect = pygame.Rect(80, dino_y + 29, 65, 65)
 
         for obs in obstacles:
             obs_rect = pygame.Rect(obs['x'], obs['y'], obs['w'], obs['h'])
             if dino_rect.colliderect(obs_rect):
                 print("Game Over!")
                 game_over = True
+                game_start_sound.stop()
+                game_over_sound.play()
                 break
 
-        elevation = 75 #for accomodating the floor in the image
+        elevation = 73 #for accomodating the floor in the image
         
         screen.blit(bg_image, (0, 0))
         score_font = pygame.font.SysFont(None, 72)
         score_text = score_font.render(str(score), True, (100,0,100))
         screen.blit(score_text, (w - 160, 40))
-        pygame.draw.rect(screen, (0,255,0), (50, dino_y - elevation, 50, 50))  # green dino
+        screen.blit(mario_image, (80, dino_y - elevation + 29))
         for obs in obstacles:
             pygame.draw.rect(screen, (255,0,0), (obs['x'], obs['y'] - elevation, obs['w'], obs['h']))
 
         #clock.tick(frame_rate)
         score += 1
 
-        if score % 100 == 0:
+        if score % 85 == 0:
             #obstacle_speed += 2
             max_obs_height += 10
             if min_dist > 16:

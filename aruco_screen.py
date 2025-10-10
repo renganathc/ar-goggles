@@ -74,7 +74,6 @@ while True:
         display[y0:y1, x0:x1] = icon_resized
 
     # --- Menu logic ---
-    # --- Menu logic ---
     if option == -1:
         element, indexPos = Touch(frame, overlay_coordinates, hands_method)
 
@@ -164,7 +163,11 @@ while True:
         option = -1
 
     cv2.imshow("Canvas Display", display)
-    key = cv2.waitKey(10)
+    
+    if option == 2:
+        key = cv2.waitKey(15)
+    else:
+        key = cv2.waitKey(10)
     if key & 0xFF == ord('r'):
         option = -1
     elif key & 0xFF == ord('q'):
