@@ -42,20 +42,20 @@ def jump_gest_detector(frame, hands_method):
         index = hand.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
         thumb = hand.landmark[mp_hands.HandLandmark.THUMB_TIP]
         wrist = hand.landmark[mp_hands.HandLandmark.WRIST]
-        index_base = hand.landmark[mp_hands.HandLandmark.INDEX_FINGER_MCP]
+        index_base, pinky_mcp = hand.landmark[mp_hands.HandLandmark.INDEX_FINGER_MCP], hand.landmark[mp_hands.HandLandmark.PINKY_MCP]
 
         # Get pixel coords
         ix, iy = int(index.x * w), int(index.y * h)
         tx, ty = int(thumb.x * w), int(thumb.y * h)
         wx, wy = int(wrist.x * w), int(wrist.y * h)
-        mx, my = int(index_base.x * w), int(index_base.y * h)
+        mx, my = int(pinky_mcp.x * w), int(pinky_mcp.y * h)
 
         # Hand size = distance between wrist and middle fingertip
         hand_size = ((mx - wx)**2 + (my - wy)**2)**0.5
         pinch_dist = ((ix - tx)**2 + (iy - ty)**2)**0.5
 
         # Detect pinch when fingers are very close compared to hand size
-        if pinch_dist < 0.35 * hand_size:
+        if pinch_dist < 0.4 * hand_size:
             jump_gesture_detected = True
 
     return jump_gesture_detected

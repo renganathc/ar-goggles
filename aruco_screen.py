@@ -65,7 +65,7 @@ key = -1
 option=  -1
 
 filtered_pts = None
-delay_counter = 0
+delay_counter = 30
 
 indexPos = (0,0)
 
@@ -162,7 +162,7 @@ while True:
 
         frame2[:, :, :][mask] = warped_canvas[:, :, :][mask]
 
-        cv2.addWeighted(frame2, 0.8, frame2_cpy, 0.2, 0, frame2)
+        cv2.addWeighted(frame2, 0.95, frame2_cpy, 0.05, 0, frame2)
         H = None
     if option == -1:
         cv2.circle(frame2,indexPos,25,(0,0,255),-1)    
