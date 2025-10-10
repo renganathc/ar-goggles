@@ -61,7 +61,7 @@ def dino_game():
             is_jumping = False
 
         spawn_timer -= 1
-        if spawn_timer <= 0:
+        if spawn_timer <= 0 and score > 100:
             obs_h = random.randint(max_obs_height - 80, max_obs_height)
             obstacles.append({'x': w, 'y': h - obs_h, 'w': 20, 'h': obs_h})
             spawn_timer = random.randint(min_dist, max_dist)  # next spawn
