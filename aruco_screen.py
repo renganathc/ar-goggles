@@ -1,51 +1,12 @@
 import cv2
 import numpy as np
-import pupil_apriltags as apriltag
 from touch import Touch, jump_gest_detector
 import mediapipe
 from dino import dino_game
 from space_shooter import space_shooter_game
 from gesture_space import detect_gestures
 from TicTacToe import TicTacToeMain
-
-def create_kf():
-    kf = cv2.KalmanFilter(4,2)
-    kf.transitionMatrix = np.array([[1, 0, 1, 0],
-                                [0, 1, 0, 1],
-                                [0, 0, 1, 0],
-                                [0, 0, 0, 1]], dtype=np.float32)
-
-    kf.measurementMatrix = np.array([[1, 0, 0, 0],
-                                    [0, 1, 0, 0]], dtype=np.float32)
-
-    kf.processNoiseCov = np.eye(4, dtype=np.float32) * 1e-3
-    kf.measurementNoiseCov = np.eye(2, dtype=np.float32) * 1e-2
-
-    return kf
-
-def scale_canvas(pts, scale, overlay=0.4):
-    cx = np.mean([p[0] for p in pts])
-    cy = np.mean([p[1] for p in pts])
-    
-    bottom_mid = (pts[2] + pts[3]) / 2.0
-    dx, dy = bottom_mid - np.array([cx, cy])
-    cx += overlay * dx
-    cy += overlay * dy
-
-    enlarged_pts = []
-    for (x, y) in pts:
-        new_x = cx + (x - cx) * scale
-        new_y = cy + (y - cy) * scale
-        enlarged_pts.append([new_x, new_y])
-    pts = np.array(enlarged_pts, dtype=np.float32)
-    return pts
-
-detector = apriltag.Detector(
-                            families="tag16h5",
-                            #quad_sigma=1,      # helps detect blurry edges
-                            #refine_edges=True,
-                            #decode_sharpening=0.5
-                            )
+import subprocess
 
 canvas_width, canvas_height, canvas_scale = 1000, 1000, 9
 
@@ -54,23 +15,26 @@ height, width, _ = canvas.shape
 height = int(height*6/10) #virtual height
 
 overlay_coordinates = [
-    [(width//4 - width//11, height//2 - height//3),(width//4 + width//11, height//2 + height//3)],
-    [(width*2//4 - width//11, height//2 - height//3),(width*2//4 + width//11, height//2 + height//3)],
-    [(width*3//4 - width//11, height//2 - height//3),(width*3//4 + width//11, height//2 + height//3)],
-    ]
+    # --- First Row ---
+    [(width * 1 // 3 - width // 8, height * 1 // 3 - height // 8),(width * 1 // 3 + width // 8, height * 1 // 3 + height // 8)],
+    [(width * 2 // 3 - width // 8, height * 1 // 3 - height // 8),(width * 2 // 3 + width // 8, height * 1 // 3 + height // 8)],
+
+    # --- Second Row ---
+    [(width * 1 // 3 - width // 8, height * 2 // 3 - height // 8),(width * 1 // 3 + width // 8, height * 2 // 3 + height // 8)],
+    [(width * 2 // 3 - width // 8, height * 2 // 3 - height // 8),(width * 2 // 3 + width // 8, height * 2 // 3 + height // 8)],
+]
+
+icon_path = ["icon_files/icon0.png", "icon_files/icon1.png", "icon_files/icon2.png", "icon_files/icon3.png"]
 
 for i,overlay in enumerate(overlay_coordinates):
     start, end = overlay
+    icon = cv2.imread(icon_path[i])
+    if icon is not None:
+        icon = cv2.resize(icon, (end[0] - start[0], end[1] - start[1]))
+        icon = cv2.flip(icon, 0)
+        canvas[start[1]:end[1], start[0]:end[0]] = icon
+        cv2.rectangle(canvas, (start[0],start[1]), (end[0],end[1]), (0,0,1), 10)
 
-    if i == 0:
-        icon = cv2.imread("icon_files/tic_icon.png")
-    elif i == 1:
-        icon = cv2.imread("icon_files/connect_icon.png")
-    elif i == 2:
-        icon = cv2.imread("icon_files/yolo_icon.png")
-
-    icon = cv2.resize(icon, (end[0] - start[0], end[1] - start[1]))
-    canvas[start[1]:end[1], start[0]:end[0]] = icon[::-1, :]
 
 src_pts = np.array([
     [0, 0],
@@ -80,12 +44,12 @@ src_pts = np.array([
 ], dtype=np.float32)
 
 cap = cv2.VideoCapture(0)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
 frame_height, frame_width, frame_area = None, None, None
 warped_canvas = None
 
-kf0, kf1, kf2, kf3 = create_kf(), create_kf(), create_kf(), create_kf()
-kf_init = False
 H = None # my homeography matrix
 
 pred_count = 0
@@ -100,6 +64,11 @@ next(game2)
 key = -1
 option=  -1
 
+filtered_pts = None
+delay_counter = 30
+
+indexPos = (0,0)
+
 while True:
     ret, frame2 = cap.read()
     if not ret:
@@ -110,88 +79,75 @@ while True:
         frame_height, frame_width = frame.shape
         frame_area = frame_height*frame_width
 
-    results = detector.detect(frame)
-    marker_found = False
+    if option != -1:
+        sq_width = int(frame_width//1.7)
+        x0 = (frame_width - sq_width)//2
+        y0 = canvas_width//4
 
-    if results:
-        for r in results:
-            area = cv2.contourArea(np.array(r.corners, dtype=np.int32))
-            if r.tag_id == 0 and area > frame_area*0.002: #adjust min area
-                dst_pts = np.array(r.corners, dtype=np.float32)
-                #print(dst_pts)
-                if dst_pts.shape != (4,2):
-                    continue
+    else:
+        sq_width = int(frame_width//0.9)
+        x0 = (frame_width - sq_width)//2
+        y0 = int(canvas_width//1.02)
 
-                if not kf_init:
-                    kf0.statePre, kf0.statePost  = np.array([[dst_pts[0][0]], [dst_pts[0][1]], [0], [0]], dtype=np.float32), kf0.statePre.copy()
-                    kf1.statePre, kf1.statePost  = np.array([[dst_pts[1][0]], [dst_pts[1][1]], [0], [0]], dtype=np.float32), kf1.statePre.copy()
-                    kf2.statePre, kf2.statePost  = np.array([[dst_pts[2][0]], [dst_pts[2][1]], [0], [0]], dtype=np.float32), kf2.statePre.copy()
-                    kf3.statePre, kf3.statePost  = np.array([[dst_pts[3][0]], [dst_pts[3][1]], [0], [0]], dtype=np.float32), kf3.statePre.copy()
-                    kf_init = True
+    filtered_pts = np.array([
+            [sq_width + x0, sq_width - y0],
+            [0 + x0, sq_width - y0],
+            [0 + x0, 0 - y0],
+            [sq_width + x0, 0 - y0],
+            
+        ], dtype=np.float32)
 
-                else:
-                    kf0.predict()
-                    kf0.correct(np.array([[dst_pts[0][0]], [dst_pts[0][1]]], dtype=np.float32))
-                    kf1.predict()
-                    kf1.correct(np.array([[dst_pts[1][0]], [dst_pts[1][1]]], dtype=np.float32))
-                    kf2.predict()
-                    kf2.correct(np.array([[dst_pts[2][0]], [dst_pts[2][1]]], dtype=np.float32))
-                    kf3.predict()
-                    kf3.correct(np.array([[dst_pts[3][0]], [dst_pts[3][1]]], dtype=np.float32))
-
-                    # filtered_pts = np.zeros((4, 2), dtype=np.float32)
-                    # filtered_pts[0] = kf0.statePost[:2].flatten()
-                    # filtered_pts[1] = kf1.statePost[:2].flatten()
-                    # filtered_pts[2] = kf2.statePost[:2].flatten()
-                    # filtered_pts[3] = kf3.statePost[:2].flatten()
-
-                    dst_pts = scale_canvas(dst_pts, canvas_scale)
-                    H, _ = cv2.findHomography(src_pts, dst_pts)
-                    
-                pred_count = 0
-                marker_found = True
-                break
-
-    if kf_init and pred_count <= 3 and not marker_found:
-        pred_count += 1
-        filtered_pts = np.zeros((4, 2), dtype=np.float32)
-
-        if pred_count <= 2:
-            filtered_pts[0] = kf0.predict()[:2].flatten()
-            filtered_pts[1] = kf1.predict()[:2].flatten()
-            filtered_pts[2] = kf2.predict()[:2].flatten()
-            filtered_pts[3] = kf3.predict()[:2].flatten()
-        
-        else:
-            filtered_pts[0] = kf0.statePost[:2].flatten()
-            filtered_pts[1] = kf1.statePost[:2].flatten()
-            filtered_pts[2] = kf2.statePost[:2].flatten()
-            filtered_pts[3] = kf3.statePost[:2].flatten()
-
-        filtered_pts = scale_canvas(filtered_pts, canvas_scale)
-        H, _ = cv2.findHomography(src_pts, filtered_pts)
+    
+    H, _ = cv2.findHomography(src_pts, filtered_pts)
     
     if H is not None:
         frame2_cpy = frame2.copy()
         if option == -1:
-            canvas2, option2 = Touch(frame2, H, overlay_coordinates, canvas.copy(), hands_method)
+            canvas2, option2, indexPos = Touch(frame2, H, overlay_coordinates, canvas.copy(), hands_method)
             pinch_gesture_detected = jump_gest_detector(frame2, hands_method) #in my case the jump gesture is a pinch gesture
-            if pinch_gesture_detected:
-                option = option2
+            if delay_counter < 60:
+                delay_counter += 1
+            else:
+                if pinch_gesture_detected:
+                    option = option2
         elif option==0:
+            delay_counter = 0
             cv2.destroyAllWindows()
             TicTacToeMain(cap)
             option = -1
         elif option==1 :
-            gesture_move, gesture_fire, palm_x = detect_gestures(frame, hands_method, 1000, 700)
+            delay_counter = 0
+            x = frame.copy()
+            x = np.fliplr(x)
+            gesture_move, gesture_fire, palm_x = detect_gestures(x, hands_method, 1000)
             canvas2= game2.send((gesture_move, gesture_fire, palm_x))
         elif option==2:
+            delay_counter = 0
             jump_gesture_detected = jump_gest_detector(frame2, hands_method)
-            if jump_gesture_detected:
-                canvas2 = game.send(True)
-                print("space hit")
-            else:
-                canvas2 = game.send(False)
+            try:
+                if jump_gesture_detected:
+                    canvas2 = game.send(True)
+                    print("space hit")
+                else:
+                    canvas2 = game.send(False)
+            except StopIteration:
+                print("Game generator ended.")
+                option = -1
+
+        elif option == 3:
+            delay_counter = 0
+            print("Releasing camera and running command...")
+            command_to_run = ["python", "objectDetection.py"]
+            cap.release()
+            cv2.destroyAllWindows() 
+            subprocess.run(command_to_run)
+            print("Re-initializing camera for AR Interface...")
+            cap = cv2.VideoCapture(0)
+            if not cap.isOpened():
+                print("FATAL: Could not re-open camera. Exiting.")
+                break
+            print("Command finished. Returning to menu.")
+            option = -1
             
 
         # warped perspective... i like to think of it as 'h matrix' takin the src and dst points,
@@ -199,14 +155,18 @@ while True:
         # any canvas size to be input. the fn simply computes h -1 and copies the pixles
         # wherever it needs to... no stretching etc... cool...
 
+        #  canvas2[:,:,:] = 255
+
         warped_canvas = cv2.warpPerspective(canvas2, H, (frame_width, frame_height))
         mask = np.any(warped_canvas != 0, axis=2)
 
         frame2[:, :, :][mask] = warped_canvas[:, :, :][mask]
 
-        cv2.addWeighted(frame2, 0.9, frame2_cpy, 0.1, 0, frame2)
+        cv2.addWeighted(frame2, 0.95, frame2_cpy, 0.05, 0, frame2)
         H = None
-
+    if option == -1:
+        cv2.circle(frame2,indexPos,25,(0,0,255),-1)    
+    frame2 = np.fliplr(frame2)
     cv2.imshow("video", frame2)
     key = cv2.waitKey(33)
     if key & 0xFF == ord('q'):

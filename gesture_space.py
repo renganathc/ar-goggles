@@ -32,7 +32,7 @@ def is_index_up(lm):
             lm[INDEX_TIP].y < lm[RING_TIP].y and
             lm[INDEX_TIP].y < lm[PINKY_TIP].y)
 
-def detect_gestures(frame, hands_method, frame_width, frame_height):
+def detect_gestures(frame, hands_method, frame_width):
     
     gesture_move = False
     gesture_fire = False

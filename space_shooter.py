@@ -5,7 +5,7 @@ import random
 import time
 
 # --- Game Config ---
-WIDTH, HEIGHT = 900, 650
+WIDTH, HEIGHT = 1000, 650
 PLAYER_SIZE = 60
 PLAYER_Y = HEIGHT - 70
 BULLET_RADIUS = 9
@@ -184,16 +184,16 @@ def space_shooter_game():
         
         # Game states
         if game.state == "MENU":
-            cv2.putText(frame, "SPACE SHOOTER", (WIDTH//2 - 200, 170), cv2.FONT_HERSHEY_TRIPLEX, 2.1, WHITE, 6)
-            cv2.putText(frame, "Show palm to START", (WIDTH//2 - 170, 270), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (180, 180, 255), 4)
+            cv2.putText(frame, "SPACE SHOOTER", (WIDTH//2 - 280, 170), cv2.FONT_HERSHEY_TRIPLEX, 2.1, WHITE, 6)
+            cv2.putText(frame, "Show palm to START", (WIDTH//2 - 260, 270), cv2.FONT_HERSHEY_SIMPLEX, 1.5, (180, 180, 255), 4)
             if gesture_move:
                 game.state = "PLAY"
                 spawn_enemy_wave()
 
         elif game.state == "GAMEOVER":
-            cv2.putText(frame, "GAME OVER!", (WIDTH//2 - 180, HEIGHT//2), cv2.FONT_HERSHEY_TRIPLEX, 2, (50, 20, 240), 7)
-            cv2.putText(frame, f"Score: {game.score}", (WIDTH//2 - 90, HEIGHT//2 + 62), cv2.FONT_HERSHEY_SIMPLEX, 1.6, WHITE, 2)
-            cv2.putText(frame, "Palm + Index to Restart", (WIDTH//2 - 200, HEIGHT//2 + 145), cv2.FONT_HERSHEY_SIMPLEX, 1.3, CYAN, 2)
+            cv2.putText(frame, "GAME OVER!", (WIDTH//2 - 185, HEIGHT//2), cv2.FONT_HERSHEY_TRIPLEX, 2, (50, 20, 240), 7)
+            cv2.putText(frame, f"Score: {game.score}", (WIDTH//2 - 95, HEIGHT//2 + 62), cv2.FONT_HERSHEY_SIMPLEX, 1.6, WHITE, 2)
+            cv2.putText(frame, "Palm + Index to Restart", (WIDTH//2 - 220, HEIGHT//2 + 145), cv2.FONT_HERSHEY_SIMPLEX, 1.3, CYAN, 2)
             if gesture_move and gesture_fire:
                 game.reset()
 
