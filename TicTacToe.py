@@ -103,6 +103,9 @@ def TicTacToeMain(cam):
     board = InitialState(EMPTY)
     user_player = X
 
+    pygame.mixer.init()
+    PopSound = pygame.mixer.Sound("./sounds/TicTacToe/PopSound.mp3")
+
     EndState = False
     EndDelay = 3.0
     EndTime = 0
@@ -165,6 +168,7 @@ def TicTacToeMain(cam):
                             if not terminal(board,EMPTY):
                                 BotThinking = True
                                 BotThinkingStart = CurrentTime
+                        PopSound.play()
                         HoveredButton = -1
                         HoverStart = 0
                 else:
@@ -180,6 +184,7 @@ def TicTacToeMain(cam):
             move = minimax(board,X,EMPTY,O)
             board = result(board, move,EMPTY,X,O)
             BotThinking = False
+            PopSound.play()
         
         # --- Message Display ---
         message = ""
