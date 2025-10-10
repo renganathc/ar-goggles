@@ -114,14 +114,14 @@ def TicTacToeMain(cam):
 
     Alpha = 1
     mphands, mpdrawing = mp.solutions.hands, mp.solutions.drawing_utils
-    hand = mphands.Hands(min_detection_confidence=0.7, max_num_hands=1)
+    hand = mphands.Hands(max_num_hands=1)
 
     HoveredButton = -1
     HoverStart = 0
     HoverDuration = 2
 
     StartTime = time.time()
-    StartDelay = 5.0
+    StartDelay = 3.0
 
     while True:
         success, frame = cam.read()
@@ -131,14 +131,15 @@ def TicTacToeMain(cam):
         key = cv2.waitKey(1) & 0xFF
         
         if time.time() < StartTime+StartDelay:
+            BG = np.zeros((HFrame, WFrame, 3), dtype=np.uint8)
             message = "Get Ready..."
             (TextWidth,TextHeight),_ = cv2.getTextSize(message,cv2.FONT_HERSHEY_SIMPLEX,1.5,3)
             TextX = (WFrame-TextWidth)//2
             TextY = (HFrame+TextHeight)//2
 
-            cv2.putText(frame,message,(TextX,TextY),cv2.FONT_HERSHEY_SIMPLEX,1.5,(255,255,255),3)
+            cv2.putText(BG,message,(TextX,TextY),cv2.FONT_HERSHEY_SIMPLEX,1.5,(255,255,255),3)
 
-            cv2.imshow("VideoFeed", frame)
+            cv2.imshow("VideoFeed", BG)
             continue
 
         BoardTopLeft = ((WFrame - UIHeight) // 2, (HFrame - UIHeight) // 2)
